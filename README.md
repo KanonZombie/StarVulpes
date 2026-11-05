@@ -1,7 +1,9 @@
-# MegaSVP
+# StarVulpes
 
 Port experimental a Sega Mega Drive/Genesis con SVP. La compilación local
 extrae y convierte los recursos de un volcado de Star Fox para SNES.
+
+*Vulpes* alude al zorro y **S**tar**V**ul**P**es es un guiño al chip SVP.
 
 ## Compilar en Windows
 
