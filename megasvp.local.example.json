@@ -1,0 +1,6 @@
+{
+  "MEGASVP_FFMPEG": "C:/tools/ffmpeg/bin/ffmpeg.exe",
+  "MEGASVP_ASM68K": "../asmTools/asm68k.exe",
+  "MEGASVP_MDSDRV": "C:/tools/MDSDRV",
+  "MEGASVP_SPC_CORE": "C:/tools/snes9x/apu/bapu/smp"
+}

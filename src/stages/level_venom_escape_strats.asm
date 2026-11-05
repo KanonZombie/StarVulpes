@@ -1,0 +1,15 @@
+; Venom 1 unit (escape): strategy table entries (dc.l original 24-bit address,Istrat).
+; Included inside M4StrategiesVenom (level_venom.asm). Owner: see build/agent-venom/escape/.
+        dc.l $06d2a5,M4VeDoor1 ;lseqdoor1 (map 0D:DB86)
+        dc.l $06d30b,M4VeDoor2 ;lseqdoor2 (map 0D:DBFB)
+        dc.l $06d470,M4VePship1I ;pshipoutofLB1 (map 0D:DC05)
+        dc.l $06d7c0,M4VeView1I ;viewoutofLB1 (map 0D:DC0B)
+        dc.l $06db45,M4VePship3I ;pshipoutofLB3 (map 0D:DC99)
+        dc.l $06dd51,M4VeView3I ;viewoutofLB3 (map 0D:DCA3)
+        dc.l $06d9c9,M4VeShip3I ;shipoutofLB3 (map 0D:DCC1/DCEE/DD1F)
+        dc.l $078507,M4VeLastB2 ;lastb2 (map 0D:D6C8)
+        dc.l $078530,M4VeLastB3 ;lastb3 (map 0D:D6D6)
+        dc.l $0785bd,M4VeLastB4 ;lastb4 (map 0D:D6E0)
+        dc.l $06c920,M4VeDiveA ;clshipDIVEa (script 05:E16C, Venom 1/2 orbital)
+        dc.l $06c9f3,M4VeDiveB ;clshipDIVEb (script 05:E121)
+        dc.l $06cac6,M4VeDiveC ;clshipDIVEc (script 05:E1B7)

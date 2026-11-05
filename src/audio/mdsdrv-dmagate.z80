@@ -1,0 +1,40 @@
+; MegaSVP alteration of MDSDRV PCM driver, Ian Karlsson (zlib).
+; Called only at refill boundaries, before any further banked-ROM read.
+; $e07 request and $e20 acknowledgement are outside stock channel state.
+; Keep the acknowledgement away from the downward-growing $f00 stack.
+; The stock, cycle-timed VBL drain routine is reused. Its release condition
+; is changed to request==0, which cannot lose a release during a bus halt.
+host_gate
+    ld a,($0e07)
+    or a
+    ret z
+    di
+    ex af,af'
+    ; We are at a main-register boundary, outside any FM write. The
+    ; interrupt entry's HL heuristic must not guess the register bank.
+    xor a
+    ld (vbl_exx),a
+    ld (vbl_busy_write),a
+    ld a,1
+    ld ($0e20),a
+    ld a,($0e21)
+    inc a
+    ld ($0e21),a
+    jp vbl_loop
+
+host_idle_gate
+    ld a,($0e07)
+    or a
+    ret z
+    ld a,1
+    ld ($0e20),a
+    ld a,($0e21)
+    inc a
+    ld ($0e21),a
+.wait
+    ld a,($0e07)
+    or a
+    jr nz,.wait
+    xor a
+    ld ($0e20),a
+    ret
