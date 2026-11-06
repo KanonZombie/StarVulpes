@@ -265,23 +265,20 @@ M4GoSubPos:
 ; bg2vofsreq 32 + 1, rows 0..1 repeated at 32..33 for the SNES 32-row wrap),
 ; gameoverpal on line 2, no tilt.
 M4GoVideoInit:
+        move.w #M4_SCR_GAMEOVER_VRAM,d0
+        lea M4ScrGameoverTiles,a0
+        jsr M4BgUpload
+        lea M4ScrGameoverMap0,a0
+        jsr M4BgDecodeScratch
         move.w sr,-(sp)
         ori.w #$0700,sr
-        move.w #M4_SCR_GAMEOVER_VRAM,d0
-        jsr M4TextVideoWriteAddress
-        lea M4ScrGameoverTiles,a0
-        move.w #M4_SCR_GAMEOVER_TILES*8-1,d1
-M4GoTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4GoTiles
         move.w #$e000,d0
         jsr M4TextVideoWriteAddress
-        lea M4ScrGameoverMap0,a0
         move.w #32*32/2-1,d1
 M4GoMap:
         move.l (a0)+,VDP_DATA
         dbra d1,M4GoMap
-        lea M4ScrGameoverMap0,a0
+        lea M4_BG_SCRATCH,a0
         moveq #32*2/2-1,d1
 M4GoMapWrap:
         move.l (a0)+,VDP_DATA
@@ -330,4 +327,4 @@ M4GoCramSave:
 
 ; Waiting map 0D:FA71 runs from M4ScriptProgramMap0D.
         include '../build/gameover-data.inc'
-        include '../build/screen-gameover.inc'
+        include '../build/packed-2d/screen-gameover.inc'

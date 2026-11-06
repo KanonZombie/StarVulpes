@@ -9,9 +9,11 @@ la ubicación y los hashes de los recursos de audio dentro de la ROM de 2 MiB.
 ./.venv/Scripts/python.exe tools/audio/check-mdsdrv-effects.py
 ```
 
-La comprobación ejecuta el host y el driver compilados, prueba las 35 rutas
-de bancos y la prioridad de efectos sobre música. Los 113 bloques PCM de
-efectos coinciden con el hash de referencia.
+La comprobación espera una ROM compilada con el catálogo por defecto.
+Ejecuta el host y el driver compilados. Comprueba los 35 bancos, los 52
+comandos de referencia con sus límites de reproducción y la prioridad
+de efectos sobre música. Los 113 bloques PCM de efectos coinciden con
+el hash de referencia.
 
 Para recorrer intro, título y Corneria en BizHawk 2.9.1 con Genesis Plus GX,
 configura `-BizHawk` con la ruta a `EmuHawk.exe`.
@@ -20,13 +22,14 @@ configura `-BizHawk` con la ruta a `EmuHawk.exe`.
 $env:MEGASVP_MDS_PLAY = '1'
 $env:MEGASVP_MDS_FIRE = '1'
 ./tools/audio/check-playback.ps1 -BizHawk 'C:/emu/BizHawk/EmuHawk.exe' `
-    -Lua (Join-Path $PWD 'tools/audio/mdsdrv-playback.lua') -Frames 4800
+    -Lua (Join-Path $PWD 'tools/audio/mdsdrv-playback.lua') -Frames 7000
 ```
 
 Comprueba `video_error=0`, `sound_ready=1`, `corneria=true` y
 `sfx_played` positivo en `build/audio-native/playback/state.txt`.
+`scramble_music_frames` y `corneria_music_frames` deben ser positivos.
 
-La compilación comprobada produjo SHA-256
-`4b4410b9f3fb03bb1ca631d912e47ad39f5fe9beadc6346b8806d6de47a07832`.
-La prueba en BizHawk alcanzó Corneria con audio y vídeo activos y registró
-50 efectos reproducidos de 50 solicitudes.
+La compilación comprobada produjo una ROM de 2.097.152 bytes con checksum
+`$2128` y SHA-256
+`01187ed048d245f579f49cd912f6da35cec6a91aec20b077a98844c092bcbf80`.
+BizHawk llegó a Corneria con vídeo y audio activos y reprodujo 204 efectos.

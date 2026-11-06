@@ -31,11 +31,9 @@ def main():
         assert max(abs(int(v)-128) for v in data)<=64
         music_hashes.add(hashlib.sha256(data+bytes([128])*32).hexdigest());music_bytes+=len(data)
     if music:
-        assert set(manifest['song_ids'])=={'1','2','6','17','34'}
-        assert manifest['commands']['11']['7']==manifest['song_ids']['34']
-        assert manifest['commands']['10']['16']==0  # Scramble must stay silent.
-        assert manifest['commands']['11']['3']==manifest['song_ids']['6']
-        assert manifest['commands']['11']['5']==manifest['song_ids']['17']
+        assert {int(number) for number in manifest['song_ids']}==set(range(1,54))-{47}
+        assert all('local' not in row for row in manifest['music']['songs'])
+        assert manifest['commands']['16']['18']==manifest['song_ids']['44']
         corneria=next(row for row in manifest['music']['songs'] if row['source']==6)
         mml=(out/corneria['mml']).read_text()
         assert not re.search(r'^[FK]\s',mml,re.M)
@@ -67,6 +65,12 @@ def main():
         cpu.call(labels['ReleaseSetBank'],d0=bank)
         expected=manifest['commands'].get(row['name'],{}).get(str(row['initial_command']),0)
         assert cpu.rw(0xff0108)==expected and cpu.rw(0xff040a)&0x3fff==expected
+    for row in manifest['music']['songs']:
+        cpu.call(labels['ReleaseSetBank'],d0=labels['ReleaseBank_'+row['bank']])
+        cpu.call(labels['ReleaseCommand'],d0=row['command'])
+        assert cpu.rw(labels['RA_SONG'])==row['song']==cpu.rw(0xff040a)&0x3fff
+        assert cpu.rw(labels['RA_END'])==row['frames']
+        assert cpu.rw(labels['RA_LOOP'])==(0xffff if row['loop_frame'] is None else row['loop_frame'])
     cpu.call(labels['ReleaseSetBank'],d0=6)  # Concurrency with Corneria running.
     continuous=next(n for n in manifest['effects']['continuous_pairs'].values() if n)
     cpu.call(driver+8,a0=0xff0400,d0=continuous,d1=2)
@@ -149,7 +153,8 @@ def main():
     (out/'effects-watch.lua').write_text('return {music='+str(manifest['song_ids'].get('6',0))+',laser='+str(manifest['effects']['effects']['53']['song'])+',radio={'+','.join(f'[{song}]={sid}' for song,sid in radio.items())+'}}\n')
     report=dict(result='PASS',rom_sha256=hashlib.sha256(rom).hexdigest(),music_enabled=music,
                 restored_effects=50,sample_chunks=samples,independent_player_radio_frames=both,
-                bank_routes_checked=35,pcm_inputs_maximum=2,pcm_peak_sum_bound=124,
+                bank_routes_checked=35,music_cues_checked=manifest['songs'],
+                pcm_inputs_maximum=2,pcm_peak_sum_bound=124,
                 music_pcm_bytes=music_bytes,effects_pcm_identical_to_baseline=music,
                 music_background_frames_during_radio=bg_blocked,
                 music_resumed_on_authored_frames=resumed,
@@ -166,7 +171,7 @@ def main():
         if state.get('rom_hash','').lower()!=hashlib.sha1(rom).hexdigest():continue
         assert (int(state['music_active_frames'])>0)==music
         assert state['music_requested']==str(music).lower()
-        if music:assert state['scramble_music_frames']=='0' and int(state['corneria_music_frames'])>0
+        if music:assert int(state['scramble_music_frames'])>0 and int(state['corneria_music_frames'])>0
         if music_pcm:
             assert int(state['music_pcm_frames'])>0 and int(state['music_player_pcm_frames'])>0
             assert state['pcm2_frames']=='0' and state['music_radio_conflicts']=='0'
@@ -181,7 +186,7 @@ def main():
         captures.append(dict(name=name,state=state,rms=rms,clipped=clipped))
     report['captures']=captures
     (ROOT/'evidence/m4-mdsdrv-effects.json').write_text(json.dumps(report,indent=2)+'\n')
-    print(f'PASS:35 bank routes,50 recovered effects unchanged, two PCM resources, music PCM={music_bytes}; {len(captures)} current playback captures.')
+    print(f"PASS: 35 banks, {manifest['songs']} music cues, 50 recovered effects unchanged, two PCM resources, music PCM={music_bytes}; {len(captures)} current playback captures.")
 
 
 if __name__=='__main__':main()

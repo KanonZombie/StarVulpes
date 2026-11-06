@@ -48,24 +48,30 @@ M4ScriptProgram:
         beq.s M4ScriptFind
         move.l d2,-(sp)
         move.w (a0),d2
-        moveq #6,d0
+        moveq #4,d0
         move.w 10(a1),d1
         jsr M4BSearch
         move.l (sp)+,d2
         move.l a2,d0
         beq M4ScriptInvalid
+        moveq #0,d0
+        move.b 2(a2),d0
+        move.w d0,22(a0)
+        move.b 3(a2),d0
+        move.w d0,24(a0)
         bra.s M4ScriptFound
 M4ScriptFind:
         move.w (a2),d0
         cmpi.w #$ffff,d0
         beq M4ScriptInvalid
         cmp.w (a0),d0
-        beq.s M4ScriptFound
+        beq.s M4ScriptFoundIntro
         lea 6(a2),a2
         bra.s M4ScriptFind
-M4ScriptFound:
+M4ScriptFoundIntro:
         move.w 2(a2),22(a0)
         move.w 4(a2),24(a0)
+M4ScriptFound:
         clr.w 26(a0)
         moveq #0,d0
         move.w (a0),d0
@@ -211,8 +217,9 @@ M4ScriptInvalid:
         rts
         even
         include '../build/m4-script-boundaries.inc'
-; Program descriptor: boundaries.l, bytes.l, index base.w, entries.w (0 =
-; linear search up to $FFFF, else a sorted table of that many entries).
+; Program descriptor: boundaries.l, bytes.l, index base.w, entries.w.
+; Intro/title (entries=0): index.w,length.w,kind.w, ending at $FFFF.
+; Level banks: sorted index.w,length.b,kind.b with the given entry count.
 M4ScriptProgramIntro:
         dc.l M4ScriptBoundaries,M4ScriptBytes
         dc.w $7870,0

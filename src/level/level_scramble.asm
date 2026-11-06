@@ -50,7 +50,7 @@ M4_SC_TIME_STAMP equ $ffb018
 X_DEPTHOFF equ -$8000+24 ;.b alx depthoffset ($1CDF): 1 -> table 03:8F9A
 X_STATE equ -$8000+25 ;.b stratstate ($1CDC)
 X_SCFLAGS equ -$8000+26 ;.b sflags2 $10 (companion boost done)
-        include '../build/level-messages.inc'
+        include '../build/packed-2d/level-messages.inc'
 M4_LEVEL_MSG_TILES equ $c000-M4_LEVEL_MSG_COUNT*32 ;OBJ texts at the top of the BG tile area
 
 ; Level 2D state after a (re)start: Corneria BG (1_1c) settings.

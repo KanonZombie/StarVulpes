@@ -242,43 +242,30 @@ M4CtlWriteMap:
         movem.l d0-d2/a0,-(sp)
         moveq #0,d0
         move.b M4_CTL_TYPE,d0
-        mulu.w #32*32*2,d0
-        lea M4ScrControlsMap0,a0
-        adda.l d0,a0
-        move.w sr,-(sp)
-        ori.w #$0700,sr
+        lsl.w #2,d0
+        lea M4CtlMaps,a0
+        movea.l (a0,d0.w),a0
         move.w #$e000,d0 ;plane B 32 x 64 (the VR plane size): rows 0..31
-        jsr M4TextVideoWriteAddress
-        move.w #32*32/2-1,d1
-M4CtlMapLong:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4CtlMapLong
-        move.w (sp)+,sr
+        jsr M4BgUpload
         movem.l (sp)+,d0-d2/a0
 M4CtlQuadDone:
         rts
+M4CtlMaps:
+        dc.l M4ScrControlsMap0,M4ScrControlsMap1,M4ScrControlsMap2,M4ScrControlsMap3
 
 ; Video of the screen (instead of M4LevelVideoInit): plane B diagram, its
 ; colours (lines 0, 1, 3) and the OBJ box tiles/colours (line 3), the level
 ; polygon palette on line 2 (GSU gamepal), no tilt, plane B scrolled 1 line
 ; (SNES BG row VOFS+1 on the first line).
 M4CtlVideoInit:
+        move.w #M4_CTL_VRAM,d0
+        lea M4ScrControlsTiles,a0
+        jsr M4BgUpload
+        move.w #M4_CTL_OBJ_VRAM,d0
+        lea M4CtlObjTiles,a0
+        jsr M4BgUpload
         move.w sr,-(sp)
         ori.w #$0700,sr
-        move.w #M4_CTL_VRAM,d0
-        jsr M4TextVideoWriteAddress
-        lea M4ScrControlsTiles,a0
-        move.w #M4_SCR_CONTROLS_TILES*8-1,d1
-M4CtlTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4CtlTiles
-        move.w #M4_CTL_OBJ_VRAM,d0
-        jsr M4TextVideoWriteAddress
-        lea M4CtlObjTiles,a0
-        move.w #M4_CTL_OBJ_TILES*8-1,d1
-M4CtlObjTileCopy:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4CtlObjTileCopy
         move.w #$e000,d0 ;clear plane B (32 x 64)
         jsr M4TextVideoWriteAddress
         move.w #1023,d1
@@ -444,5 +431,5 @@ M4CtlLimitDone:
         rts
 
 ; contmap 0D:FA3C runs from the bank-0D map program (M4ScriptProgramMap0D).
-        include '../build/screen-controls.inc'
-        include '../build/screen-controls-obj.inc'
+        include '../build/packed-2d/screen-controls.inc'
+        include '../build/packed-2d/screen-controls-obj.inc'

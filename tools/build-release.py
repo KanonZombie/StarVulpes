@@ -90,17 +90,20 @@ def main():
         at=symbols['XGM2_Play_LoadSid']-2
         assert rom[at:at+2]==bytes.fromhex('7a7b')
         rom[at:at+2]=bytes.fromhex('7a00') #native music: no PCM; reserve SID page for Z80 helper
-    # Scene wrappers retain the original call's result, registers and CCR.
+    # Level initialization stops the previous BGM while clearing objects.
+    # Start the new screen's cue after that reset.
     scene_hooks=[];wrappers=[]
     for entry,original,bank,label in (
         ('M4TitleInit','M4SoundStopLoops','title','ReleaseTitleMusic'),
-        ('M4ControlsStart','M4SoundStopLoops','ops','ReleaseControlsMusic'),
-        ('M4GameOverStart','M4SoundStopLoops','gameover','ReleaseGameoverMusic'),
-        ('M4CnGo','M4PipeFlush','continue','ReleaseContinueMusic'),
-        ('M4PlanetSeq','M4PipeFlush','map','ReleaseMapMusic'),
-        ('M4TrainingStart','M4PipeFlush','training','ReleaseTrainingMusic')):
+        ('M4CtlOk2','M4LevelInit','ops','ReleaseControlsMusic'),
+        ('M4GameOverStart','M4LevelInit','gameover','ReleaseGameoverMusic'),
+        ('M4CnOk2','M4LevelInit','continue','ReleaseContinueMusic'),
+        ('M4RmOk2','M4LevelInit','map','ReleaseMapMusic'),
+        ('M4TrainingStart','M4LevelInit','training','ReleaseTrainingMusic')):
         at=symbols[entry];expected=b'\x4e\xb9'+struct.pack('>I',symbols[original])
-        assert rom[at:at+6]==expected,(entry,rom[at:at+6].hex())
+        end=at+(128 if original=='M4LevelInit' else 6)
+        assert rom[at:end].count(expected)==1, (entry,original)
+        at=rom.index(expected,at,end)
         wrappers.append(f'''{label}:
         jsr {original}
         move.w sr,-(sp)
@@ -112,22 +115,27 @@ def main():
         rts
 ''')
         scene_hooks.append((at,6,label,True))
-    for entry,bank,value,destination,label in (
-        ('M4EndCredits','staff',0x71ee,'M4_GS_NEWMAP','ReleaseCreditsMusic'),):
-        at=symbols[entry]
-        expected=bytes.fromhex('33fc')+struct.pack('>HI',value,symbols[destination])
-        assert rom[at:at+8]==expected,(entry,rom[at:at+8].hex())
-        wrappers.append(f'''{label}:
+    at=symbols['M4LvStartInit']
+    expected=b'\x4e\xb9'+struct.pack('>I',symbols['M4LevelInit'])
+    expected+=b'\x4e\xb9'+struct.pack('>I',symbols['M4MusicLevel'])
+    assert rom[at:at+12]==expected
+    wrappers.append('''ReleaseCreditsMusic:
         move.w sr,-(sp)
+        cmpi.b #END_PH_CREDITS,M4_END_ON
+        bne.s ReleaseCreditsMusicDone
+        cmpi.b #$0d,M4_GS_NEWBANK
+        bne.s ReleaseCreditsMusicDone
+        cmpi.w #$71ee,M4_GS_NEWMAP
+        bne.s ReleaseCreditsMusicDone
         move.l d0,-(sp)
-        moveq #ReleaseBank_{bank},d0
+        moveq #ReleaseBank_staff,d0
         bsr ReleaseSetBank
         move.l (sp)+,d0
+ReleaseCreditsMusicDone:
         move.w (sp)+,sr
-        move.w #${value:x},{destination}
-        jmp {entry}+8
+        rts
 ''')
-        scene_hooks.append((at,8,label,False))
+    scene_hooks.append((at+6,6,'ReleaseCreditsMusic',True))
     restart=b'\x4e\xb9'+struct.pack('>I',symbols['M4MusicLevel'])
     a,b=symbols['M4LevelRestartTick'],symbols['M4LvRestartReq']
     assert rom[a:b].count(restart)==1
@@ -219,7 +227,7 @@ def main():
         automatic_report=False, runtime_profiling=False, audio_labels={k:v for k,v in labels.items() if k.startswith('Release')},
         audio_engine=args.audio_engine, audio_complete=True,audio_catalog_complete=not mds, hardware_listening_verified=False,
         pcm_aperture_limit=0x200000,native_audio=audio_metadata,music_events=event_specs,skipped_startup_tests=skipped,
-        limitations=(['Eight current-scene arrangements included; remaining music deferred by user. Seven PCM-only themes omitted.',
+        limitations=(['Music cues come from the extracted score and optional local MML. See build/mdsdrv/manifest.json for the active catalog.',
                       'Complete supplied percussion groups, filtered to4375/6562Hz; no attack substitution or tail cuts. Long SFX use PSG; nearest-object PCM precedes engine; finite PCM preempts that voice.',
                       'F1 uses160 original musical ticks and quadratic amplitude. F4/F5 retain143-tick ramps and original targets; transpose applies to destination FM/PSG melody rather than the original SPC voice subset.',
                       'DMA gate uses lightweight16-line H-INTs; actual transfers retain the207 window. Nomad listening and performance are unverified.'] if mds else

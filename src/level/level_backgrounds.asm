@@ -43,7 +43,7 @@ LBG_DEPTH equ 5
 LBG_PSTRAT equ 6
 M4_LBG_VRAM equ $9a40 ;tiles up to M4_LEVEL_MSG_TILES ($b100, 182 tiles)
 M4_LBG_W64 equ M4_SPB+1 ;.b 1: the image streams 64 source columns (M4_SPB_ON = 2)
-M4_LBG_MAP equ M4_SPB_END ;.l name table of the loaded image (64 rows x 32/64 WORDs)
+M4_LBG_MAP equ M4_SPB_END ;.l decoded name table in WRAM
 
 ; d0.w = background number -> a0 = program, d1.w = dotsflag << 8 | star mode.
 ; Z = 1 when the number is not in the table. Other registers preserved.
@@ -158,22 +158,12 @@ M4LbgLoad:
         movem.l d0-d3/a0-a1,-(sp)
         jsr M4VRBgReplaceBegin
         movea.l 4(a2),a0
-        move.w #M4_LBG_VRAM,d1
-        move.w (a2),d3
-        add.w d3,d3
-        subq.w #1,d3 ;16-byte chunks
-M4LbgTileChunk:
-        move.w sr,-(sp)
-        ori.w #$0700,sr
-        move.w d1,d0
-        jsr M4TextVideoWriteAddress ;d0/d2
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.w (sp)+,sr
-        addi.w #16,d1
-        dbra d3,M4LbgTileChunk
+        move.w #M4_LBG_VRAM,d0
+        jsr M4BgUploadStage
+        movea.l 8(a2),a0
+        lea M4_BG_MAP_RAM,a1
+        jsr M4BgDecode
+        move.l a1,M4_LBG_MAP
         movea.l 12(a2),a0 ;CRAM lines 0-1 (slots 0..11 of line 1)
         lea M4_SPB_CRAM,a1
         moveq #27,d1
@@ -186,7 +176,6 @@ M4LbgCram:
 M4LbgColsClear:
         st (a0)+
         dbra d1,M4LbgColsClear
-        move.l 8(a2),M4_LBG_MAP
         move.b #2,M4_SPB_ON
         clr.b M4_SC_BGBLACK ;the palette op reloads the BG rows (makeBG2black undone)
         st M4_SC_BGSHOWN ;M4ScBgPalette applies the new rows with the next image
@@ -198,7 +187,7 @@ M4LbgColsClear:
         bsr.s M4LbgStream64
         bra.s M4LbgLoadDone
 M4LbgLoadStatic:
-        movea.l 8(a2),a1 ;32 columns: the 64 rows at plane B $E000
+        lea M4_BG_MAP_RAM,a1 ;32 columns: the 64 rows at plane B $E000
         move.w #$e000,d1
         moveq #63,d3
 M4LbgPlaneRow:
@@ -232,6 +221,7 @@ M4LbgStreamGeneric:
         bne.s M4LbgStream64
 M4LbgStreamNone:
         rts
+M4SpaceBgStream:
 M4LbgStream64:
         movem.l d0-d7/a0-a2,-(sp)
         neg.w d0 ;HOFS

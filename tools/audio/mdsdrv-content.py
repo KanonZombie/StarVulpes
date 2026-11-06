@@ -1,6 +1,7 @@
 """Prepare native music, effects and command routing from the local ROM."""
 import hashlib
 import importlib.util
+import io
 import json
 import math
 import re
@@ -12,14 +13,13 @@ import numpy as np
 from catalog import ROOT
 import spc_score
 
-OMITTED = {28, 37, 38, 45, 47, 48, 50}
-MUSIC_RATES = {6: 4375, 17: 2187, 34: 4375}
+OMITTED = {47}  # The End is part of the original credits score (38).
+MUSIC_RATES = dict.fromkeys((6, 7, 9, 10, 18, 20, 34, 39, 40, 43, 46), 4375) | {17: 2187}
 FX_RATE = 4375
 VOICE_RATE = 6562
 RESTORED_SFX = {4, 53, 0x45}
 MUSIC_ENABLED = True
-MUSIC_TRACKS = {1, 2, 6, 17, 34}
-MUSIC_PCM = True
+LOCAL_PCM_RATES = (2187, 4375, 6562, 8750)
 RADIO_SFX = {0x0d,0x13,0x2a,0x67,0xae,*range(0x5f,0x65),*range(0x7a,0x80),0x8c}
 # Full-band effect captures rendered during the extraction (render-sfx.py).
 _spec=importlib.util.spec_from_file_location('sfx_render',Path(__file__).with_name('render-sfx.py'))
@@ -33,6 +33,8 @@ def origins():
     # starts the124-note boss cue. The previous native index conflated them.
     result[22]=('13',6)   # supplied23:124 notes,566 frames
     result[43]=('13',5)   # supplied44:316 notes,1637 frames
+    # Original commands with different timing or notes from the named cues.
+    result.extend((('12',14), ('15',2)))
     return spc_score,result
 
 
@@ -288,15 +290,121 @@ def drum_track(notes, ram, out, number, end, loop):
     return definitions, sum(map(len, groups.values())), waves
 
 
-def prepare_music(out, source_hashes):
+def local_tracks(manifest, source_hashes, count):
+    if manifest is None:
+        return {}, 4375
+    manifest = manifest.resolve()
+    raw = manifest.read_bytes()
+    source_hashes[manifest.as_posix()] = sha(raw)
+    config = json.loads(raw.decode('utf-8-sig'))
+    if not isinstance(config, dict) or config.keys() - {'tracks', 'pcm_rate'} or not isinstance(config.get('tracks'), dict):
+        raise ValueError(f'{manifest}: se espera un objeto tracks y, opcionalmente, pcm_rate.')
+    rate = config.get('pcm_rate', 4375)
+    if type(rate) is not int or rate not in LOCAL_PCM_RATES:
+        raise ValueError(f'{manifest}: pcm_rate debe ser uno de {LOCAL_PCM_RATES}.')
+    tracks = {}
+    for key, filename in config['tracks'].items():
+        number = int(key) if re.fullmatch(r'[0-9]{1,2}', key) else 0
+        if not 1 <= number <= count or number in tracks or not isinstance(filename, str):
+            raise ValueError(f'{manifest}: tema inválido o repetido {key!r}; use IDs de 01 a {count:02}.')
+        path = (manifest.parent / filename).resolve()
+        if path.suffix.lower() != '.mml' or not path.is_file():
+            raise ValueError(f'{manifest}: falta el MML del tema {number:02}: {path}')
+        tracks[number] = path
+    return tracks, rate
+
+
+def has_sampler_metadata(wav):
+    offset = 12  # RIFF/WAVE chunk headers are word-aligned.
+    while offset + 8 <= len(wav):
+        name, size = struct.unpack_from('<4sI', wav, offset)
+        if name == b'smpl':
+            return True
+        offset += 8 + size + (size & 1)
+    return False
+
+
+def prepare_local_track(out, source_hashes, number, source, rate_limit):
+    raw = source.read_bytes()
+    source_hashes[source.as_posix()] = sha(raw)
+    text = raw.decode('utf-8-sig').replace('\r\n', '\n')
+    track_header = re.compile(r'^([A-Z]+)(?=[ \t])', re.M)
+    channels = set(''.join(track_header.findall(text)))
+    if 'K' in channels and 'L' in channels:
+        raise ValueError(f'{source}: combina la percusión de K y L en un solo canal L.')
+    text = track_header.sub(lambda m: m[1].replace('K', 'L'), text)
+    text = re.sub(r"'pcmmode\s+2\s*'", "'pcmmode 3'", text, flags=re.I)
+    sample_dir = out / 'local-pcm'
+    samples = {}
+
+    def pcm(match):
+        original = (source.parent / (match[2] or match[3])).resolve()
+        wave_bytes = original.read_bytes()
+        digest = sha(wave_bytes)
+        if source_hashes.setdefault(original.as_posix(), digest) != digest:
+            raise ValueError(f'{original}: el WAV cambió durante la compilación.')
+        options = match[4]
+        override = re.search(r'\brate\s*=\s*(\d+)\b', options, re.I)
+        with wave.open(io.BytesIO(wave_bytes)) as w:
+            authored_rate = int(override[1]) if override else w.getframerate()
+            frames = w.getnframes()
+            if authored_rate <= 0 or not frames:
+                raise ValueError(f'{original}: WAV vacío o frecuencia PCM inválida.')
+            rate = min((r for r in LOCAL_PCM_RATES if r <= rate_limit), key=lambda r: abs(r-authored_rate))
+            name = f'{digest}-{authored_rate}-{rate}.wav'
+            target = sample_dir / name
+            if name not in samples:
+                sample_dir.mkdir(exist_ok=True)
+                if rate == authored_rate:
+                    target.write_bytes(wave_bytes)
+                else:
+                    # The input WAV may declare an authored playback rate in
+                    # MML. Resample that time base to keep pitch and duration.
+                    width = w.getsampwidth()
+                    if width not in (1, 2) or has_sampler_metadata(wave_bytes):
+                        raise ValueError(f'{original}: exporte el WAV PCM sin bucle a {rate} Hz para importarlo.')
+                    data = np.frombuffer(w.readframes(frames), np.uint8 if width == 1 else '<i2')
+                    left = data.reshape(-1, w.getnchannels())[:, 0].astype(float)
+                    left = left - 128 if width == 1 else left / 256
+                    converted = resample(left, authored_rate, rate)
+                    wav_write(target, converted if len(converted) else left[:1], rate)
+                samples[name] = dict(destination=target.relative_to(ROOT).as_posix(),
+                                     source_rate=authored_rate, rate=rate, sha256=sha(target.read_bytes()))
+        if override:
+            options = options[:override.start()] + f'rate={rate}' + options[override.end():]
+        else:
+            options = f' rate={rate}' + options
+        if rate != authored_rate:
+            options = re.sub(r'\boffset\s*=\s*(\d+)\b',
+                             lambda m: f'offset={round(int(m[1])*rate/authored_rate)}', options, flags=re.I)
+        return f'{match[1]}"local-pcm/{name}"{options}'
+
+    text = re.sub(r'^(@\d+[ \t]+pcm[ \t]+)(?:"([^"\r\n]+)"|([^\s"]+))([^\r\n]*)',
+                  pcm, text, flags=re.M | re.I)
+    target = out / f'local-{number:02}.mml'
+    target.write_text(text, encoding='utf-8', newline='\n')
+    return target, list(samples.values())
+
+
+def prepare_music(out, source_hashes, music_manifest=None):
     original, source_origins = origins()
     trace_dir = ROOT / 'build/audio-native'
     data = json.loads((trace_dir / 'score-traces.json').read_text())
     banks = {bank['name']: bank for bank in data['banks']}
     (out / 'music-pcm').mkdir(exist_ok=True)
     inputs, song_ids, rows, waves = [], {}, [], []
-    for number in sorted(MUSIC_TRACKS):
-        bank, command = source_origins[number-1]
+    overrides, rate = local_tracks(music_manifest, source_hashes, len(source_origins))
+    for number, origin in enumerate(source_origins, 1):
+        if origin is None:
+            continue
+        bank, command = origin
+        if number in overrides:
+            path, samples = prepare_local_track(out, source_hashes, number, overrides[number], rate)
+            inputs.append(path)
+            song_ids[number] = len(inputs)
+            rows.append(dict(source=number, song=len(inputs), bank=bank, command=command,
+                             mml=path.name, local=overrides[number].as_posix(), pcm=samples))
+            continue
         trace = data['traces'][banks[bank]['slots'][str(command)]]
         ram_path = trace_dir / trace['ram']
         ram = ram_path.read_bytes()
@@ -315,10 +423,9 @@ def prepare_music(out, source_hashes):
         inputs.append(path)
         song_ids[number] = len(inputs)
         rows.append(dict(source=number, song=len(inputs), bank=bank, command=command,
-                         notes=len(notes), percussion_hits=hits, mml=path.name, loop_frame=loop,
+                         notes=len(notes), percussion_hits=hits, mml=path.name, frames=end, loop_frame=loop,
                          loop_end_frame=end if loop is not None else None))
-    report = dict(songs=rows, waves=waves, omitted=sorted(OMITTED),
-                  deferred=sorted(set(range(1, 52)) - OMITTED - set(song_ids)),
+    report = dict(songs=rows, waves=waves, omitted=sorted(OMITTED - song_ids.keys()),
                   adaptation='SPC note onsets and playlist bounds; local FM/PSG timbres and BRR percussion mixed on L. Pitch bends, pan and per-note volume automation are approximated by the onset.')
     (out / 'content.json').write_text(json.dumps(report, indent=2) + '\n')
     return inputs, song_ids, report
@@ -470,7 +577,7 @@ def prepare_effects(out, inputs, source_hashes):
     return report
 
 
-def routing(song_ids, source_hashes):
+def routing(song_ids, source_hashes, overrides=()):
     # Match aliases by original SPC note and loop signatures.
     original,source_origins=origins()
     path=ROOT/'build/audio-native/score-traces.json'
@@ -486,9 +593,23 @@ def routing(song_ids, source_hashes):
             events=[(n['frame'],n['voice'],n['pitch'],n['spc_pitch'],n['instrument'],n['volume'],n['bends'],n['volumes']) for n in notes]
             signatures[key]=sha(json.dumps([end,loop,events],separators=(',',':')).encode())
         return signatures[key]
-    for number,(bank,command) in enumerate(source_origins,1):
+    for number,origin in enumerate(source_origins,1):
         if number in song_ids:
+            bank,command=origin
             keys.setdefault(signature(banks[bank]['slots'][str(command)]),song_ids[number])
+    local_routes={}
+    for number in overrides:
+        bank,command=source_origins[number-1]
+        key=signature(banks[bank]['slots'][str(command)])
+        if key in local_routes:
+            raise ValueError(f'Los temas {local_routes[key]:02} y {number:02} comparten el mismo cue. Elija uno.')
+        local_routes[key]=number
+        keys[key]=song_ids[number]
+    if 44 in song_ids:
+        # Venom's command $12 plays the same warning and return as
+        # Space Armada's $05, with different instruments in its SPC bank.
+        warning = banks['16']['slots']['18']
+        keys.setdefault(signature(warning),song_ids[44])
     result={}
     for bank in traces['banks']:
         result[bank['name']]={int(command):keys.get(signature(key),0) for command,key in bank['slots'].items()}

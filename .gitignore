@@ -3,6 +3,8 @@
 /evidence/
 /mdsdrv-final/
 /megasvp.local.json
+/music/local/
+/.codex-remote-attachments/
 /.venv/
 **/__pycache__/
 *.bin
@@ -17,6 +19,7 @@
 *.ram
 *.trace
 *.wav
+*.mp4
 *.png
 *.zip
 *.7z

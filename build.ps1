@@ -1,10 +1,12 @@
 param(
     # Official game output: build/megasvp-m4-intro.bin, including MDSDRV.
     [ValidateSet('m4-intro', 'm4-level-boss', 'm4-level-profile', 'm4-intro-vr-stress')][string]$Target = 'm4-intro',
-    [string]$Asm68k = $env:MEGASVP_ASM68K
+    [string]$Asm68k = $env:MEGASVP_ASM68K,
+    [string]$MusicManifest
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
+if ($MusicManifest -and $Target -ne 'm4-intro') { throw '-MusicManifest requiere el objetivo m4-intro.' }
 # Assembly only: build/ must already hold the data extracted from the Star Fox
 # ROM (extract_sf.ps1; rebuild.ps1 runs both stages).
 . (Join-Path $PSScriptRoot 'tools/stage-common.ps1')
@@ -47,7 +49,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallo la generacion del HUD desde build/level-
 if ($LASTEXITCODE -ne 0) { throw 'Fallo el empaquetado de graficos extraidos.' }
 if ($Target -eq 'm4-intro') {
     $releasePython = Resolve-MegaSvpPython $projectRoot
-    & $releasePython (Join-Path $projectRoot 'tools/audio/mdsdrv-bank.py')
+    $audioArgs = @((Join-Path $projectRoot 'tools/audio/mdsdrv-bank.py'))
+    if ($MusicManifest) { $audioArgs += @('--music-manifest', $MusicManifest) }
+    & $releasePython @audioArgs
     if ($LASTEXITCODE -ne 0) { throw 'Fallo la preparacion MDSDRV de la ROM oficial.' }
 }
 $listingPath = Join-Path $buildDir "$Target.lst"

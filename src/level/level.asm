@@ -792,65 +792,116 @@ M4LvCommit:
         jsr M4ScriptCommit
         bra M4LvEvent
 
-; Find the event record for the current index -> a2 (or 0).
-M4LvFindEvent:
-        move.l d0,-(sp)
-        lea M4Map0DEvents,a2
-        move.w #M4_MAP0D_EVENTS,d1
-        cmpi.b #5,19(a0)
-        bne.s M4LvFindEventSearch
-        lea M4Map05Events,a2
-        move.w #M4_MAP05_EVENTS,d1
-M4LvFindEventSearch:
-        moveq #24,d0
-        jsr M4BSearch
-        move.l (sp)+,d0
-        rts
-
-; 00/70/74/76/86: create, then the command's wait (handlers F75F/F560/F812/F9DB).
+; 00/26/70/74/76/86: create, then the command's wait.
 M4LvCreate:
-        move.w (a0),d2
-        jsr M4LvFindEvent
-        move.l a2,d0
-        beq M4LvMapBad
-        move.w 18(a2),2(a0) ;wait_after (ROM units)
+        movem.l d2-d5/a0,-(sp)
+        bsr.s M4LvDecodeSpawn
+        move.w d1,2(a0) ;wait_after (ROM units)
         clr.l M4_LV_LAST
-        move.l 12(a2),d0 ;strategy 24-bit
-        movem.l a0-a1,-(sp)
         jsr M4LevelFindStrategy
-        movem.l (sp)+,a0-a1
         move.l a2,d1
-        beq M4LvCreateSkip
+        beq.s M4LvCreateSkip
         movea.l a2,a3 ;Istrat
-        move.w (a0),d2
-        jsr M4LvFindEvent
-        move.l a0,-(sp)
         jsr M4LevelAlloc
         move.l a0,d0
-        beq M4LvCreateFull
-        move.w 4(a2),(a0)
-        move.w 6(a2),2(a0)
-        lea LV_PLAYER,a4
-        move.w 8(a2),d0
-        add.w 4(a4),d0 ;z = player worldZ + zrel
-        move.w d0,4(a0)
-        move.w 10(a2),d0 ;shape header (bank 00)
-        move.w d0,X_SHAPEHDR(a0)
+        beq.s M4LvCreateDone ;original: allocation failure skips the object
+        move.w d2,(a0)
+        move.w d3,2(a0)
+        add.w LV_PLAYER+4,d4 ;z = player worldZ + zrel (WORD wrap)
+        move.w d4,4(a0)
+        move.w d5,X_SHAPEHDR(a0)
+        move.w d5,d0
         jsr M4LevelShapeIndex
         jsr M4LevelSetShape
-        cmpi.w #$26,2(a2)
+        cmpi.b #$26,(a1)
         bne.s M4LvCreateNoRotz
-        move.b 23(a2),14(a0) ;mapobjzrot: rotz = byte 11 of the command
+        move.b 11(a1),14(a0) ;mapobjzrot
 M4LvCreateNoRotz:
         move.l a3,32(a0) ;first traversal runs the Istrat
-        move.l (sp)+,a0
-        bra M4LvCommit
-M4LvCreateFull:
-        move.l (sp)+,a0
-        bra M4LvCommit ;original: allocation failure skips the object
+M4LvCreateDone:
+        movem.l (sp)+,d2-d5/a0
+        bra.w M4LvCommit
 M4LvCreateSkip:
         addq.w #1,M4_LV_SKIPPED
-        bra M4LvCommit
+        bra.s M4LvCreateDone
+
+; a1 = original map command, possibly odd-aligned. d0.l = strategy address;
+; d1-d5.w = wait, x, y, zrel, shape header. Clobbers a2, preserves a0/a1.
+; Original handlers at 03:F75F/F8C6/F560/F812/F9DB (70 and 76 share F560).
+M4LvDecodeSpawn:
+        move.b (a1),d0
+        cmpi.b #$70,d0
+        beq.s M4LvSpawnShort
+        cmpi.b #$76,d0
+        beq.s M4LvSpawnShort
+        move.b 2(a1),d1
+        lsl.w #8,d1
+        move.b 1(a1),d1
+        move.b 4(a1),d2
+        lsl.w #8,d2
+        move.b 3(a1),d2
+        move.b 6(a1),d3
+        lsl.w #8,d3
+        move.b 5(a1),d3
+        move.b 8(a1),d4
+        lsl.w #8,d4
+        move.b 7(a1),d4
+        cmpi.b #$86,d0
+        beq.s M4LvSpawnDirect
+        lea 9(a1),a2
+        bra.s M4LvSpawnIndices
+M4LvSpawnShort:
+        moveq #0,d1
+        move.b 1(a1),d1
+        lsl.w #4,d1
+        move.b 2(a1),d2
+        ext.w d2
+        lsl.w #2,d2
+        move.b 3(a1),d3
+        ext.w d3
+        lsl.w #2,d3
+        moveq #0,d4
+        move.b 4(a1),d4
+        lsl.w #4,d4
+        lea 5(a1),a2
+M4LvSpawnIndices:
+        cmpi.b #$74,d0
+        beq.s M4LvSpawnImplicit
+        cmpi.b #$76,d0
+        beq.s M4LvSpawnImplicit
+        moveq #0,d5
+        move.b (a2)+,d5 ;explicit shape index
+        bra.s M4LvSpawnStrategy
+M4LvSpawnImplicit:
+        moveq #-1,d5 ;shape index comes from the Istrat entry
+M4LvSpawnStrategy:
+        moveq #0,d0
+        move.b (a2),d0
+        lsl.w #2,d0
+        lea M4MapSpawnStrategies,a2
+        move.l (a2,d0.w),d0
+        tst.w d5
+        bpl.s M4LvSpawnShape
+        move.l d0,d5
+        rol.l #8,d5
+        andi.w #$ff,d5
+M4LvSpawnShape:
+        andi.l #$ffffff,d0
+        add.w d5,d5
+        lea M4MapSpawnShapes,a2
+        move.w (a2,d5.w),d5
+        rts
+M4LvSpawnDirect:
+        move.b 10(a1),d5
+        lsl.w #8,d5
+        move.b 9(a1),d5
+        moveq #0,d0
+        move.b 13(a1),d0
+        lsl.l #8,d0
+        move.b 12(a1),d0
+        lsl.l #8,d0
+        move.b 11(a1),d0
+        rts
 
 ; 36/38 setalvar on the last created object (offsets used by map1_1b).
 M4LvSetAlvar:

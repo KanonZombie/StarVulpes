@@ -34,9 +34,16 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
 extracción vigente para cambios en el ensamblador. Las salidas y los
 informes locales se guardan en `build/` y `evidence/`.
 
-La conversión musical usa eventos y muestras extraídos del SPC de la ROM.
-Los timbres FM/PSG son aproximaciones para Mega Drive. El catálogo activo
-abarca intro, título, Corneria, su jefe y su fanfarria de final de fase.
+El build convierte 52 secuencias musicales desde el SPC de la ROM, con
+temas de las etapas, jefes y créditos. Recupera las notas, la duración y
+los puntos de retorno del original. Usa timbres FM/PSG adaptados y
+percusión extraída del BRR original.
+
+## Cambiar la música
+
+Pon tus archivos en `music/local/` y compila con `-MusicManifest` para
+reemplazar temas con tus MML de ctrmml. La carpeta local queda fuera del
+historial. [Guía de música, formato y catálogo](music/README.md)
 
 El volcado original, la ROM generada y los recursos extraídos se mantienen
 fuera del historial. Las atribuciones de las herramientas y el código

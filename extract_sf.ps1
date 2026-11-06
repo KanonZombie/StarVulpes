@@ -55,6 +55,7 @@ try {
     # Scaled text of the level (msprint, ending and credits): font and SSP raster.
     foreach ($script in @('ending-resources.py', 'extract-ending-font.py', 'generate-svp-ending-text.py',
                           'extract-runtime-tables.py', 'extract-encounter-tables.py')) { Invoke-Tool $script }
+    Invoke-Tool 'pack-backgrounds.py'
     Invoke-Tool 'extract-sf-sfx.py'
     Invoke-Tool 'audio/render-sfx.py'  # full-band captures for MDSDRV: build.ps1 needs no FFmpeg
     # Inputs of the MDSDRV audio integration (build.ps1): original SPC score

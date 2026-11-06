@@ -5,6 +5,17 @@ import re
 
 def patch(work, root):
     path68=work/'src/mdsdrv.68k';code=path68.read_text()
+    # Song offsets are unsigned words. A word index sign-extends offsets
+    # above $7fff and reads the preceding song instead of the current track.
+    begin=code.index('\nmds_update_seq\n')
+    end=code.index('\nmds_update_mtab\n',begin)
+    sequence=code[begin:end]
+    position='\tmove.w\tt_position(twork),@trackpos'
+    assert sequence.count(position)==1 and sequence.count(',@trackpos)')==33
+    sequence=sequence.replace(position,
+        '; ALTERED for MegaSVP: zero-extend the sequence offset.\n\tmoveq\t#0,@trackpos\n'+position)
+    sequence=sequence.replace(',@trackpos)',',@trackpos.l)')
+    code=code[:begin]+sequence+code[end:]
     marker='\tadd.w\td1,d0\t\t\t\t\t\t\t; d0=porta_target'
     assert code.count(marker)==1
     code=code.replace(marker,marker+'''

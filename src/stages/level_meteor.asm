@@ -1072,6 +1072,7 @@ M4MtOneUpKillNone:
 ; (the background has just been loaded again).
 M4MtFlyinI:
         clr.b M4_MT_FADEINIT
+        bclr #SF_INVISIBLE,49(a0) ;initgame's player_Istrat (0B:B541) clears the playercred flag
         move.b M4_LP_PSF,-(sp)
         jsr M4ScOnPlanetIstrat
         move.b (sp)+,d0

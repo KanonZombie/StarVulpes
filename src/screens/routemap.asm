@@ -630,17 +630,16 @@ M4RmDrawTextDone:
 M4RmPepperVideo:
         movem.l d0-d2/a0-a1,-(sp)
         move.w sr,-(sp)
-        ori.w #$0700,sr
         move.w #M4_SCR_PEPPER_VRAM,d0
-        jsr M4TextVideoWriteAddress
         lea M4ScrPepperTiles,a0
-        move.w #M4_SCR_PEPPER_TILES*8-1,d1
-M4RmPepperTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4RmPepperTiles
+        jsr M4BgUpload
+        lea M4ScrPepperMap0,a0
+        lea M4_BG_MAP_RAM,a1
+        jsr M4BgDecode
+        movea.l a1,a0
+        ori.w #$0700,sr
         move.w #$e000,d0
         jsr M4TextVideoWriteAddress
-        lea M4ScrPepperMap0,a0
         moveq #0,d2 ;row
 M4RmPepperRow:
         moveq #31,d1
@@ -713,7 +712,7 @@ M4RmPepperTextRows:
         ori.w #$0700,sr
         move.w #$e000+22*64,d0
         jsr M4TextVideoWriteAddress
-        lea M4ScrPepperMap0+22*64,a0
+        lea M4_BG_MAP_RAM+22*64,a0 ;held from M4RmPepperVideo until the briefing ends
         move.w #4*32-1,d1
 M4RmPepperRestore:
         move.w (a0)+,VDP_DATA
@@ -1322,38 +1321,30 @@ M4RmVideoInit:
         move.w #$8d34,VDP_CTRL ;flight may have selected the D400 tilt table
         move.l #$50000003,VDP_CTRL ;D000: reset both planes' horizontal scroll
         move.l #0,VDP_DATA
+        move.w (sp)+,sr
         move.w #M4_SCR_ROUTEMAP_VRAM,d0
-        jsr M4TextVideoWriteAddress
         lea M4ScrRoutemapTiles,a0
-        move.w #M4_SCR_ROUTEMAP_TILES*8-1,d1
-M4RmTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4RmTiles
+        jsr M4BgUpload
         move.w #M4_RM_OBJ_VRAM,d0
-        jsr M4TextVideoWriteAddress
         lea M4RmObjTiles,a0
-        move.w #M4_RM_OBJ_TILES*8-1,d1
-M4RmObjCopy:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4RmObjCopy
+        jsr M4BgUpload
         move.w #$e000,d0
-        jsr M4TextVideoWriteAddress
         lea M4ScrRoutemapMap0,a0
-        move.w #32*32/2-1,d1
-M4RmMap:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4RmMap
+        jsr M4BgUpload
+        move.w sr,-(sp)
+        ori.w #$0700,sr
+        move.w #$e800,d0 ;clear rows 32..63
+        jsr M4TextVideoWriteAddress
         move.w #32*32/2-1,d1
 M4RmMapClear:
         move.l #0,VDP_DATA
         dbra d1,M4RmMapClear
+        move.w (sp)+,sr
         move.w #$c000,d0 ;plane A: planet cells with their CRAM lines
-        jsr M4TextVideoWriteAddress
         lea M4RmPlaneA,a0
-        move.w #2047,d1
-M4RmPlaneACopy:
-        move.w (a0)+,VDP_DATA
-        dbra d1,M4RmPlaneACopy
+        jsr M4BgUpload
+        move.w sr,-(sp)
+        ori.w #$0700,sr
         move.w #$8700,VDP_CTRL ;backdrop = CGRAM 0 (map background colour)
         move.w #$8b00,VDP_CTRL
         move.w (sp)+,sr
@@ -1696,9 +1687,9 @@ M4RmIrqSin: ;02:AAD9 signed sine table (256 bytes) of the planets IRQ
         incbin '../build/routemap-irqsin.bin'
 M4RmSpinSpeeds: ;03:C593 roty speeds (6 WORDs)
         include '../build/routemap-spin.inc'
-        include '../build/routemap-data.inc'
-        include '../build/screen-routemap.inc'
-        include '../build/screen-pepper.inc'
+        include '../build/packed-2d/routemap-data.inc'
+        include '../build/packed-2d/screen-routemap.inc'
+        include '../build/packed-2d/screen-pepper.inc'
         include 'screens/routemap_native.asm'
         include '../build/agent-sphere/sphere-cram.inc'
         even

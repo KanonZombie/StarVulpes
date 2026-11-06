@@ -19,7 +19,7 @@ M4_SPB_COLS equ M4_SPB+4 ;32 .b source column held by each plane column ($ff non
 M4_SPB_CRAM equ M4_SPB+36 ;28 .w CRAM lines 0-1 (slots 0..11 of line 1) of this BG
 M4_SPB_END equ M4_SPB+92
 
-        include '../build/screen-space12.inc'
+        include '../build/packed-2d/screen-space12.inc'
 
 ; transswap of setbg $21: tiles, CRAM rows and the whole plane window for
 ; the scroll of this tick. Interrupts are masked only per chunk.
@@ -27,20 +27,12 @@ M4SpaceBgLoad:
         movem.l d0-d3/a0-a1,-(sp)
         jsr M4VRBgReplaceBegin
         lea M4ScrSpace12Tiles,a0
-        move.w #M4_SCR_SPACE12_VRAM,d1
-        move.w #M4_SCR_SPACE12_TILES*2-1,d3 ;16-byte chunks
-M4SpbTileChunk:
-        move.w sr,-(sp)
-        ori.w #$0700,sr
-        move.w d1,d0
-        jsr M4TextVideoWriteAddress ;d0/d2
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.l (a0)+,VDP_DATA
-        move.w (sp)+,sr
-        addi.w #16,d1
-        dbra d3,M4SpbTileChunk
+        move.w #M4_SCR_SPACE12_VRAM,d0
+        jsr M4BgUploadStage
+        lea M4ScrSpace12Map,a0
+        lea M4_BG_MAP_RAM,a1
+        jsr M4BgDecode
+        move.l a1,M4_LBG_MAP
         lea M4_SPB_CRAM,a1
         moveq #27,d1
 M4SpbCramClear:
@@ -68,78 +60,7 @@ M4SpbColsClear:
         not.b d0
         move.b d0,M4_SC_BGSHOWN
         move.w M4_BG_HSCROLL,d0
-        bsr.s M4SpaceBgStream
+        jsr M4SpaceBgStream
         jsr M4VRBgReplaceEnd
         movem.l (sp)+,d0-d3/a0-a1
-        rts
-
-; d0 = plane B HSCROLL of the image (-HOFS & $3ff). Loads the plane columns
-; whose source column differs from the window of this image.
-M4SpaceBgStream:
-        movem.l d0-d7/a0-a2,-(sp)
-        neg.w d0 ;HOFS
-        addi.w #10,d0
-        asr.w #3,d0
-        subq.w #1,d0
-        andi.w #63,d0
-        move.w d0,M4_SPB_L
-        move.w d0,d5 ;s
-        moveq #31,d6
-M4SpbStreamNext:
-        move.w d5,d4
-        andi.w #31,d4 ;plane column c
-        lea M4_SPB_COLS,a0
-        cmp.b (a0,d4.w),d5
-        beq.s M4SpbStreamHeld
-        move.b d5,(a0,d4.w)
-        bsr.s M4SpbColumn
-M4SpbStreamHeld:
-        addq.w #1,d5
-        andi.w #63,d5
-        dbra d6,M4SpbStreamNext
-        movem.l (sp)+,d0-d7/a0-a2
-        rts
-
-; d4 = plane column c, d5 = source column s. Four chunks of 16 rows written
-; down the column with autoincrement 64 (plane B 32 cells: 64 bytes a row).
-M4SpbColumn:
-        move.w d5,d0
-        andi.w #31,d0
-        add.w d0,d0
-        lea M4ScrSpace12Map0,a1 ;rows 0..31: screen (0,0) or (1,0)
-        lea M4ScrSpace12Map2,a2 ;rows 32..63: screen (0,1) or (1,1)
-        btst #5,d5
-        beq.s M4SpbColumnLeft
-        lea M4ScrSpace12Map1,a1
-        lea M4ScrSpace12Map3,a2
-M4SpbColumnLeft:
-        adda.w d0,a1
-        adda.w d0,a2
-        move.w d4,d2
-        add.w d2,d2
-        addi.w #$e000,d2 ;VRAM of row 0
-        moveq #3,d3
-M4SpbColumnChunk:
-        cmpi.w #1,d3
-        bne.s M4SpbColumnSrc
-        movea.l a2,a1 ;rows 32..63
-M4SpbColumnSrc:
-        move.w sr,-(sp)
-        ori.w #$0700,sr
-        move.w #$8f40,VDP_CTRL
-        moveq #0,d0
-        move.w d2,d0
-        andi.w #$3fff,d0
-        swap d0
-        ori.l #$40000003,d0 ;VRAM write, address bits 15-14 = 3
-        move.l d0,VDP_CTRL
-        moveq #15,d1
-M4SpbColumnWord:
-        move.w (a1),VDP_DATA
-        lea 64(a1),a1
-        dbra d1,M4SpbColumnWord
-        move.w #$8f02,VDP_CTRL
-        move.w (sp)+,sr
-        addi.w #16*64,d2
-        dbra d3,M4SpbColumnChunk
         rts

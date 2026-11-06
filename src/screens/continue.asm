@@ -529,25 +529,18 @@ M4CnCreditDone:
 ; OBJ tiles after the BG tiles, CRAM lines 0/1 (BG2 rows 4/5), 2 (setpal_l 1
 ; 02:F456: CGRAM row 7 = 03:8ACA, the 3D colours), 3 (OBJ palette 0).
 M4CnVideoInit:
+        move.w #M4_SCR_CONTINUE_VRAM,d0
+        lea M4ScrContinueTiles,a0
+        jsr M4BgUpload
+        move.w #M4_CN_OBJ_VRAM,d0
+        lea M4CnObjTiles,a0
+        jsr M4BgUpload
+        lea M4ScrContinueMap0,a0
+        jsr M4BgDecodeScratch
         move.w sr,-(sp)
         ori.w #$0700,sr
-        move.w #M4_SCR_CONTINUE_VRAM,d0
-        jsr M4TextVideoWriteAddress
-        lea M4ScrContinueTiles,a0
-        move.w #M4_SCR_CONTINUE_TILES*8-1,d1
-M4CnTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4CnTiles
-        move.w #M4_CN_OBJ_VRAM,d0
-        jsr M4TextVideoWriteAddress
-        lea M4CnObjTiles,a0
-        move.w #M4_CN_OBJ_TILES*8-1,d1
-M4CnObjTileCopy:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4CnObjTileCopy
         move.w #$e000,d0
         jsr M4TextVideoWriteAddress
-        lea M4ScrContinueMap0,a0
         move.w #32*32/2-1,d1
 M4CnMap:
         move.l (a0)+,VDP_DATA
@@ -601,7 +594,7 @@ M4CnPlaneA:
         move.w #$c000,d0
         jsr M4TextVideoWriteAddress
         lea M4VRPlaneAMap,a0
-        lea M4ScrContinueMap0,a1
+        lea M4_BG_SCRATCH,a1 ;map decoded by M4CnVideoInit for both planes
         moveq #0,d3
 M4CnPlaneACell:
         move.w (a0)+,d0
@@ -637,5 +630,5 @@ M4CnPlaneAWrite:
         movem.l (sp)+,d0-d4/a0-a1
         rts
 
-        include '../build/screen-continue.inc'
-        include '../build/continue-obj.inc'
+        include '../build/packed-2d/screen-continue.inc'
+        include '../build/packed-2d/continue-obj.inc'

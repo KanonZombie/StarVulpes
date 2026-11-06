@@ -9,6 +9,8 @@
 - **MDSDRV 0.6**, Ian Karlsson. La compilación usa una copia local del
   driver, con adaptaciones 68000/Z80 generadas en `build/`. Aviso zlib en
   `licenses/mdsdrv-zlib.txt`. `mdslink` pertenece a ctrmml.
+  El empaquetado de gráficos usa Salvador y el decodificador ZX0 de
+  Emmanuel Marty, reescrito por ctr, incluidos en el paquete local.
   [MDSDRV](https://github.com/superctr/MDSDRV), [ctrmml](https://github.com/superctr/ctrmml)
 - **Snes9x/bapu**. Núcleo SMP externo para ejecutar el controlador SPC
   extraído durante la conversión. Aviso en

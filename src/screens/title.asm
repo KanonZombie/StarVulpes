@@ -103,25 +103,21 @@ M4TitleClearDemo:
         clr.w M4_TITLE_EXIT
         move.b #$40,$a10009 ;port1 TH output for the three-button read
         move.b #$40,$a10003
-        ; BG title: VRAM uploads with IRQ4 masked; pipeline is idle.
-        move.w sr,-(sp)
-        ori.w #$0700,sr
+        ; Display hidden and pipeline idle. Decode with IRQs enabled.
         move.w #M4_TITLE_TILES_A,d0
-        jsr M4TextVideoWriteAddress
-        lea M4TitleTiles,a0
-        move.w #302*8-1,d1
-M4TitleTilesA:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4TitleTilesA
+        lea M4TitlePatternsA1,a0
+        jsr M4BgUpload
+        move.w #M4_TITLE_TILES_A+M4TitlePatternsA1Bytes,d0
+        lea M4TitlePatternsA2,a0
+        jsr M4BgUpload
         move.w #M4_TITLE_TILES_B,d0
-        jsr M4TextVideoWriteAddress
-        move.w #10*8-1,d1
-M4TitleTilesB:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4TitleTilesB
+        lea M4TitlePatternsB,a0
+        jsr M4BgUpload
         ; Original title: BG3/BG2 priority-1 cells lie IN FRONT of the GSU
         ; layer. The bitmap entries of plane A drop to low priority; window
         ; and margin tiles stay high. Same tiles, same DMA.
+        move.w sr,-(sp)
+        ori.w #$0700,sr
         move.w #$c000,d0
         jsr M4TextVideoWriteAddress
         lea M4VRPlaneAMap,a0
@@ -135,14 +131,10 @@ M4TitlePlaneAWrite:
         move.w d0,VDP_DATA
         dbra d1,M4TitlePlaneA
         move.w #$8731,VDP_CTRL ;backdrop palette3 colour1, reserved black
-        move.w #$e000,d0
-        jsr M4TextVideoWriteAddress
-        lea M4TitlePlaneB,a0
-        move.w #1023,d1
-M4TitlePlane:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4TitlePlane
         move.w (sp)+,sr
+        move.w #$e000,d0
+        lea M4TitlePlaneB,a0
+        jsr M4BgUpload
         ; Palette source: cpusp rows (lines0/1/3) and row7=03:8ACA (line2,
         ; same GSU palette as the intro). Faded per image by M4VRFadePalette.
         lea M4TitleCram,a0
@@ -327,10 +319,6 @@ M4TitleStartPressed:
         even
 M4TitleDemoCommand:
         include '../build/m4-title-demo-command.inc'
-M4TitleTiles:
-        incbin '../build/title-bg-tiles.md.bin'
-M4TitlePlaneB:
-        incbin '../build/title-bg-planeb.md.bin'
 M4TitleCram:
         incbin '../build/title-bg-cram.md.bin'
 M4TitleSprite:

@@ -1,4 +1,5 @@
 """Pack locally converted score, effects and voices for SVP."""
+import argparse
 import hashlib
 import json
 import os
@@ -41,6 +42,9 @@ def share_sequences(data):
     out=bytearray(data[:starts[0]]);seen={}
     for index,(a,b) in enumerate(zip(starts,starts[1:]+[end]),1):
         song=data[a:b]
+        base=struct.unpack_from('>H',song)[0]
+        if len(song)-base>=0x10000:
+            raise ValueError(f'La secuencia {index} supera el rango de sus offsets de 16 bits.')
         if song not in seen:seen[song]=len(out);out.extend(song)
         at=seen[song];struct.pack_into('>I',out,8+index*4,at-8)
         assert out[at:at+len(song)]==data[a:b]
@@ -49,25 +53,35 @@ def share_sequences(data):
     return out,dict(songs=count,unique_songs=len(seen),saved_bytes=len(data)-len(out))
 
 
-def prepare():
+def prepare(music_manifest=None):
     for tool in ('mdslink.exe', 'sjasmplus.exe', 'salvador.exe'):
         if not (DRIVER/'tools'/tool).is_file():
             raise FileNotFoundError(f'Falta {tool}. Configure MEGASVP_MDSDRV con MDSDRV 0.6 y sus herramientas.')
     OUT.mkdir(exist_ok=True)
     source_hashes = {}
     if content.MUSIC_ENABLED:
-        inputs,song_ids,music=content.prepare_music(OUT,source_hashes)
+        inputs,song_ids,music=content.prepare_music(OUT,source_hashes,music_manifest)
     else:
         inputs,song_ids,music=[],{},dict(songs=[],waves=[],omitted=sorted(content.OMITTED))
+    local = [row for row in music['songs'] if 'local' in row]
+    local_names = {row['mml'] for row in local}
     effects=content.prepare_effects(OUT,inputs,source_hashes)
-    commands=content.routing(song_ids,source_hashes)
+    commands=content.routing(song_ids,source_hashes,[row['source'] for row in local])
     for path in inputs:
+        if path.name in local_names:
+            continue  # Leave authored syntax to mdslink.
         text=path.read_text()
         text=re.sub(r'^([A-L])\s+(.+)$',lambda m:m[1]+' '+content.compact_track(m[2]),text,flags=re.M)
         path.write_text(text)
     run([DRIVER/'tools/mdslink.exe','-o','seq.bin','pcm.bin','-i','songs.inc',*[p.name for p in inputs]], OUT/'link.log',cwd=OUT)
     sequence=OUT/'seq.bin'
-    shared,sequence_sharing=share_sequences(sequence.read_bytes());sequence.write_bytes(shared)
+    linked = sequence.read_bytes()
+    for row in local:
+        start = 8 + struct.unpack_from('>I', linked, 8 + 4*row['song'])[0]
+        channels = set(linked[start+4:start+4+4*linked[start+3]:4])
+        if not channels or channels & {5, 10}:
+            raise ValueError(f"{row['local']}: el tema debe tener pistas y reservar F y K para el port. Use L para PCM.")
+    shared,sequence_sharing=share_sequences(linked);sequence.write_bytes(shared)
     # Assemble a workspace copy; never write into the user's external driver.
     work = OUT/'driver';(work/'src').mkdir(parents=True, exist_ok=True);(work/'out').mkdir(exist_ok=True)
     driver_sources = {}
@@ -84,6 +98,9 @@ def prepare():
     run([DRIVER/'tools/salvador.exe','out/mdssub.bin','out/mdssub.zx0'],OUT/'z80-pack.log',cwd=work)
     assembler = os.environ.get('MEGASVP_ASM68K', str(ROOT.parent/'asmTools/asm68k.exe'))
     run([assembler,'/p','src/blob.68k,out/mdsdrv.bin,,out/mdsdrv.lst'], OUT/'driver.log', cwd=work)
+    work_size = re.search(r'^\w{8} =([0-9A-F]{8})\s+WSIZE\s+rs\.b\b',
+                          (work/'out/mdsdrv.lst').read_text(encoding='latin-1'), re.M)
+    assert work_size and int(work_size[1], 16) <= 0x400, 'MDSDRV work overlaps the 2D decode buffer at $FF0800'
     driver = work/'out/mdsdrv.bin'
     assert driver.stat().st_size < 16384 and b'MDSDRV0.6' in driver.read_bytes()
     sequence = OUT/'seq.bin'
@@ -96,48 +113,11 @@ def prepare():
                   effects=effects, music=music,
                   files={str(p.relative_to(ROOT).as_posix()):digest(p) for p in (sequence,OUT/'pcm.bin',driver)},
                   music_enabled=content.MUSIC_ENABLED,
-                  music_pcm=content.MUSIC_PCM,sequence_sharing=sequence_sharing,
-                  scope='Intro, title, Corneria, its boss and clear cue recovered from SPC traces. FM/PSG synthesis and ROM percussion on background L. Effects retain priority on F/L.')
+                  music_pcm=bool(music['waves'] or any(row['pcm'] for row in local)),sequence_sharing=sequence_sharing,
+                  scope=('Custom local music plus the remaining default tracks. Effects retain priority on F/L.' if local else
+                         'Score and loop points recovered from the verified USA SPC. FM/PSG synthesis and ROM percussion on L. Effects retain priority on F/L.'))
     (OUT/'manifest.json').write_text(json.dumps(result, indent=2)+'\n')
     print(f'MDSDRV ready: {sequence.stat().st_size} sequence bytes; {(OUT/"pcm.bin").stat().st_size} PCM bytes')
-
-
-def compact_event_metadata(rom, symbols):
-    """Keep only creation records consumed by M4LvFindEvent in the release.
-
-    level.asm calls this lookup only from M4LvCreate (twice). Commands
-    36/38/3C/8C/5A/84 read script bytes or constants directly in their own
-    handlers; their generated 24-byte event copies have no consumers.
-    Preserve original script bytes, boundaries, blocks and every creation
-    record byte for byte. Only the two immediate search counts change.
-    Diagnostic source tables and the linked layout remain unchanged.
-    """
-    creation = {0x00, 0x26, 0x70, 0x74, 0x76, 0x86}
-    direct = {0x36, 0x38, 0x3c, 0x8c, 0x5a, 0x84}
-    regions = []; report = []
-    start, end = symbols['M4LvFindEvent'], symbols['M4LvCreate']
-    for bank in ('0D', '05'):
-        base = symbols[f'M4Map{bank}Events']
-        count = symbols[f'M4_MAP{bank}_EVENTS']
-        stop = symbols[f'M4Map{bank}EventsEnd']
-        assert stop == base + count*24 + 2 and rom[stop-2:stop] == b'\xff\xff'
-        rows = [bytes(rom[base+i*24:base+(i+1)*24]) for i in range(count)]
-        keys = [int.from_bytes(row[:2], 'big') for row in rows]
-        assert keys == sorted(set(keys))
-        assert all(int.from_bytes(row[2:4], 'big') in creation | direct for row in rows)
-        kept = [row for row in rows if int.from_bytes(row[2:4], 'big') in creation]
-        # lea table,a2 / move.w #count,d1, exactly the existing consumer.
-        marker = b'\x45\xf9' + struct.pack('>IHH', base, 0x323c, count)
-        assert rom[start:end].count(marker) == 1, bank
-        at = rom.index(marker, start, end) + 8
-        struct.pack_into('>H', rom, at, len(kept))
-        packed = b''.join(kept) + b'\xff\xff'
-        rom[base:base+len(packed)] = packed
-        regions.append((base+len(packed), stop))
-        report.append(dict(bank=bank,original_records=count,creation_records=len(kept),
-                           reclaimed_bytes=stop-base-len(packed),count_operand=at,
-                           retained_sha256=hashlib.sha256(b''.join(kept)).hexdigest()))
-    return regions, report
 
 
 def pack(rom, symbols):
@@ -153,6 +133,8 @@ def pack(rom, symbols):
     # tables (formerly the literals 0x17cb0e / 0x19bfb8: they follow layout).
     page_tails = [(symbols['SVP_GeoRom0End'],symbols['SVP_GeoRom1']),
                   (symbols['SVP_SphRomEnd'],symbols['SVP_TexAtlas'])]
+    if symbols['CPU_CodeEnd'] < symbols['SVP_RomData']:
+        page_tails.append((symbols['CPU_CodeEnd'], symbols['SVP_RomData']))
     # The final geometry block need not abut the sphere's single-page
     # tables. Recover its alignment tail as geometry grows across stages.
     geo_end = max(v for k,v in symbols.items() if re.fullmatch(r'SVP_GeoRom\d+End', k))
@@ -160,21 +142,34 @@ def pack(rom, symbols):
         page_tails.append((geo_end, symbols['SVP_SphRom']))
     for a,b in page_tails:
         assert a < b and not any(rom[a:b]), 'Page-alignment tail is no longer empty'
-    host_base = max(0x1af100, (symbols['SVP_BspPoolEnd'] + 15) & ~15)
-    host_limit = host_base + 0xf00
-    assert host_limit < 0x200000
-    assert not any(rom[host_base:min(host_limit,0x1b0000)])
-    # Beyond $1B0000 the base contains retired legacy samples. Reserve the
-    # host before allocating MDSDRV assets; never overwrite live geometry.
-    rom[host_base:host_limit] = bytes(host_limit-host_base)
-    regions = [(tail,0x20000),(max(0x1b0000,host_limit),0x200000)] + page_tails
+    graphics_end = symbols['SVP_BspPoolEnd']
+    seq=bytearray((OUT/'seq.bin').read_bytes());pcm=(OUT/'pcm.bin').read_bytes()
+    legacy_start, aperture_end = 0x1b0000, 0x200000
+    host_size = 0xf00
+    host_base = max(0x1af100, (graphics_end + 15) & ~15)
+    largest_tail = max(host_base - ((graphics_end + 1) & ~1),
+                       aperture_end - max(legacy_start, host_base + host_size))
+    # Keep the usual host address when the sequence fits. A larger sequence
+    # needs the post-graphics gap and the retired samples as one region.
+    if len(seq) > largest_tail:
+        host_base = aperture_end - host_size
+    host_limit = host_base + host_size
+    assert graphics_end <= host_base and host_limit <= aperture_end
+    assert not any(rom[graphics_end:min(host_limit, legacy_start)]), 'Data after SVP_BspPoolEnd'
+    rom[host_base:host_limit] = bytes(host_size)
+    regions = [(tail,0x20000)] + page_tails
+    upper_start = max(legacy_start, host_limit)
+    if upper_start < aperture_end:
+        regions.append((upper_start, aperture_end))
+    if graphics_end < host_base:
+        regions.append((graphics_end, host_base))
     # Raw SNES bank copies the port reads only in part: map banks 0D / 05
     # after M4_MAP*_USED_END (tools/generate-map-programs.py: every reachable
     # command and mother script ends before it), and the $FF padding of the
     # path bank (opcode $FF is no path command).
     for bank in ('0D','05'):
         base,used = symbols[f'M4Map{bank}Bytes'],symbols[f'M4_MAP{bank}_USED_END']
-        commands = [struct.unpack_from('>HH', rom, symbols[f'M4Map{bank}Boundaries'] + 6*i)
+        commands = [struct.unpack_from('>HB', rom, symbols[f'M4Map{bank}Boundaries'] + 4*i)
                     for i in range(symbols[f'M4_MAP{bank}_COMMANDS'])]
         assert max(i+n for i,n in commands) <= used < 0x8000, f'Map bank {bank} commands past USED_END'
         regions.append((base+used, base+0x8000))
@@ -199,8 +194,6 @@ def pack(rom, symbols):
                 (symbols['M4MapFadeTest'],symbols['M4BackgroundStart']),
                 (symbols['M4ScriptTest'],symbols['M4TextPathTick']),
                 (symbols['M4IntroCameraVectors'],symbols['M4IntroShipInit'])]
-    reclaimed,event_metadata = compact_event_metadata(rom, symbols)
-    regions += reclaimed
     # Standalone diagnostic functions. Their only callers are the intro
     # startup checks bypassed by build-release.py; retain runtime helpers.
     retired_tests = [('M4IntroShipTest','M4IntroMatrix'),
@@ -287,13 +280,12 @@ def pack(rom, symbols):
         rom[at:at+len(data)]=data
         assets[name]=dict(address=at,bytes=len(data),sha256=hashlib.sha256(data).hexdigest())
         return at
-    seq=bytearray((OUT/'seq.bin').read_bytes());pcm=(OUT/'pcm.bin').read_bytes()
     labels={'ReleaseMDSDriver':allocate('driver',(OUT/'driver/out/mdsdrv.bin').read_bytes()),
             'ReleaseHostBase':host_base, 'ReleaseHostLimit':host_limit}
     # Reserve the largest CPU blob before sample placement fragments holes.
     sequence_address=allocate('sequences',bytes(len(seq)))
     # Reserve shared control tables before small PCM assets fragment holes.
-    control_capacity=5120  # Current complete effects tables + Corneria clocks; fail closed on growth.
+    control_capacity=6144  # Effects tables and clocks for the recovered score.
     controls_address=allocate('control_tables',bytes(control_capacity))
     controls=bytearray();control_cursor=controls_address
     def control(name,data):
@@ -311,18 +303,20 @@ def pack(rom, symbols):
         # Pad enough unsigned silence for the final partially consumed block.
         data=pcm[pos:pos+size]+bytes([128])*32
         key=hashlib.sha256(data).hexdigest()
-        samples.setdefault(key,dict(data=data,headers=[],quantum=seq[header]*5))['headers'].append(header)
-        assert samples[key]['quantum']==seq[header]*5
+        samples.setdefault(key,dict(data=data,headers=[]))['headers'].append(header)
     for sample in samples.values():
-        data=sample['data'];original_size=len(data)-32;quantum=sample['quantum']
+        data=sample['data'];original_size=len(data)-32
         # Drop only exact unsigned zero-amplitude samples. Keep the last
-        # nonzero sample inside a complete mixer quantum, plus the existing
-        # guard. MML note duration/resource ownership is unchanged.
+        # nonzero sample inside a complete mixer quantum at each pitch.
+        # Shared waveforms use one allocation with a length per header.
         audible_size=len(data.rstrip(bytes([128])))
-        size=min(original_size,max(quantum,(audible_size+quantum-1)//quantum*quantum))
-        stored=data[:size]+bytes([128])*32
+        sizes={}
+        for header in sample['headers']:
+            quantum=seq[header]*5
+            sizes[header]=min(original_size,max(quantum,(audible_size+quantum-1)//quantum*quantum))
+        stored=data[:max(sizes.values())]+bytes([128])*32
         assert stored+bytes([128])*(len(data)-len(stored))==data
-        sample.update(stored=stored,size=size)
+        sample.update(stored=stored,sizes=sizes)
     ordered=sorted(samples.items(),key=lambda item:len(item[1]['stored']),reverse=True)
     for n,(key,sample) in enumerate(ordered):
         try:
@@ -331,9 +325,9 @@ def pack(rom, symbols):
             print('unplaced PCM: %d of %d, sizes %s' % (len(ordered)-n, len(ordered), [len(s['stored']) for _,s in ordered[n:]]))
             raise
         assets['pcm_'+key].update(logical_bytes=len(sample['data']),logical_sha256=key)
-        for header in sample['headers']:
+        for header, size in sample['sizes'].items():
             seq[header+1:header+4]=at.to_bytes(3,'big')
-            struct.pack_into('>I',seq,header+4,sample['size'])
+            struct.pack_into('>I',seq,header+4,size)
     labels['ReleaseMDSSeq']=sequence_address
     rom[sequence_address:sequence_address+len(seq)]=seq
     assets['sequences']['sha256']=hashlib.sha256(seq).hexdigest()
@@ -377,9 +371,17 @@ def pack(rom, symbols):
     _,source_origins=content.origins();tempo_assets={}
     for row in manifest['music']['songs']:
         number=row['source'];bank,command=source_origins[number-1]
+        if 'local' in row:
+            # Authored tempo and looping are handled by MDSDRV. Use a neutral
+            # host clock for fades/warp, independent of the original cue.
+            data = bytes.fromhex('0000001fffff0000')
+            if data not in tempo_assets:
+                tempo_assets[data] = control('tempo_local', data)
+            struct.pack_into('>IHH',clock_table,row['song']*8,tempo_assets[data],0xffff,0xffff)
+            continue
         trace=trace_data['traces'][source_banks[bank]['slots'][str(command)]]
         origin=trace['orders'][0][0]
-        end=row['loop_end_frame'] if row['loop_frame'] is not None else max(1,round((trace['song_end']-origin)*60/1024000)-1)
+        end=row['frames']
         tempos={max(0,round((clock-origin)*60/1024000)-1):value for clock,value in trace['tempos'] if value}
         data=b''.join(struct.pack('>HH',frame,value) for frame,value in sorted(tempos.items()) if frame<end)+bytes.fromhex('ffff0000')
         if data not in tempo_assets:tempo_assets[data]=control('tempo_'+str(number),data)
@@ -395,7 +397,6 @@ def pack(rom, symbols):
                 storage_regions=regions,free_regions=sorted(free),
                 cleanup=dict(retired_tests=retired_tests,recovered_audio_bytes=sum(b-a for a,b in recovered),
                              retired_upper_half_bytes=0x200000),
-                event_metadata=event_metadata,
                 engine='MDSDRV0.6',music_rates=manifest['music_rates'],pcm_aperture_limit=0x200000,
                 sequences=manifest['sequences'],omitted_music=manifest['music']['omitted'],
                 scope=manifest['scope'],sfx_enabled=True,loops='Recovered original playlist loop frames.')
@@ -403,4 +404,7 @@ def pack(rom, symbols):
     return labels,report
 
 
-if __name__=='__main__': prepare()
+if __name__=='__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--music-manifest', type=Path)
+    prepare(parser.parse_args().music_manifest)

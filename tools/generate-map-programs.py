@@ -22,7 +22,7 @@ match use the EXTRA_* templates below (new kinds, semantics read from the ROM co
 Outputs:
   build/map0d.bin            0D:8000..FFFF (32 KiB)
   build/map05.bin            05:8000..FFFF (32 KiB; map subroutines reached by mapjsr)
-  build/map0d.inc            M4Map0D*/M4Map05* boundaries and block tables, kinds
+  build/map0d.inc            map boundaries, blocks, kinds and spawn lookup tables
   build/map-programs.json    inventory per entry, kinds, hashes, correspondence tests
 """
 from starfox_rom import rom_pattern
@@ -391,7 +391,9 @@ def event_record(bank, index, length):
     s8 = lambda v: v - 256 if v & 128 else v
     tab = lambda base, i, n: int.from_bytes(ROM[phys(0, base) + n * i:phys(0, base) + n * i + n], 'little')
     def strat(ii): return tab(R['ISTRAT_TAB'], ii, 4) & 0xffffff, ROM[phys(0, R['ISTRAT_TAB']) + 4 * ii + 3]
-    def shape(si): return tab(R['SHAPES_TAB'], si, 2)
+    def shape(si):
+        assert 2 * si < R['ISTRAT_TAB'] - R['SHAPES_TAB'], ('shape index', bank, index, si)
+        return tab(R['SHAPES_TAB'], si, 2)
     x = y = z = sh = st = wait = extra = value = 0; ii = 0xffff
     if op in (0x00, 0x26, 0x74, 0x86):
         wait, x, y, z = w(1), w(3), w(5), w(7)
@@ -517,9 +519,12 @@ def main():
         L += ['', '; first byte of the raw bank copy after every command (and mother script) the port reads',
               'M4_MAP%s_USED_END equ $%04x' % (tag, used_end[bank]),
               'M4_MAP%s_COMMANDS equ %d' % (tag, len(order)),
-              '; index.w,length.w,kind.w per reachable command, sorted by index (binary search).',
+              '; index.w,length.b,kind.b per reachable command, sorted by index (binary search).',
               'M4Map%sBoundaries:' % tag]
-        L += ['        dc.w $%04x,%d,$%02x' % (i, cmds[(bank, i)]['length'], kinds_of[(bank, i)]) for i in order]
+        for i in order:
+            length, kind = cmds[(bank, i)]['length'], kinds_of[(bank, i)]
+            assert 0 < length <= 255 and 0 <= kind <= 255, (tag, i, length, kind)
+            L.append(f'        dc.w ${i:04x},${length:02x}{kind:02x}')
         L += ['        dc.w $ffff', 'M4Map%sBoundariesEnd:' % tag]
         brs = sorted(r for k, r in recs.items() if k[0] == bank)
         L += ['M4_MAP%s_BLOCKS equ %d' % (tag, len(brs)),
@@ -531,14 +536,18 @@ def main():
         evs = [event_record(bank, i, cmds[(bank, i)]['length']) for i in order
                if int(cmds[(bank, i)]['opcode'], 16) in EV_OPS]
         events[bank] = evs
-        L += ['M4_MAP%s_EVENTS equ %d' % (tag, len(evs)),
-              '; 24 bytes, format of M4LevelScriptEvents (index.w,opcode.w,x,y,zrel,shape,strategy.l,istrat,',
-              '; wait_after,extra,value), sorted by index (binary search).',
-              'M4Map%sEvents:' % tag]
-        for e in evs:
-            L.append(('        dc.w %s' + chr(10) + '        dc.l $%06x' + chr(10) + '        dc.w %s')
-                     % (','.join('$%04x' % v for v in e[:6]), e[6], ','.join('$%04x' % v for v in e[7:])))
-        L += ['        dc.w $ffff', 'M4Map%sEventsEnd:' % tag]
+
+    # M4LvDecodeSpawn reads positions/timing from the original command and
+    # resolves only the original table indirections, in 68000 byte order.
+    shapes_at, istrats_at = (phys(0, R[name]) for name in ('SHAPES_TAB', 'ISTRAT_TAB'))
+    istrats = 1 + max(e[7] for rows in events.values() for e in rows if e[7] != 0xffff)
+    L += ['', '; 00:A64B..A83C: original shape header pointers.', 'M4MapSpawnShapes:']
+    L += [f'        dc.w ${rw(p):04x}' for p in range(shapes_at, istrats_at, 2)]
+    L += ['', '; 00:A83D: Istrat entries up to the highest index used by a map spawn.',
+          '; Packed LONG: default shape index in the high byte, then the 24-bit strategy.',
+          'M4MapSpawnStrategies:']
+    for p in range(istrats_at, istrats_at + 4 * istrats, 4):
+        L.append(f'        dc.l ${int.from_bytes(ROM[p:p+4], "little"):08x}')
     (ROOT / 'build/map0d.inc').write_text('\n'.join(L) + '\n', encoding='utf-8')
 
     # ---- correspondence: Corneria 1 vs build/level1-script.inc ------------------

@@ -141,6 +141,7 @@ CPU_Stop:
         include 'intro/text_path.asm'
         include 'tests/text_path_test.asm'
         include 'render/text_video.asm'
+        include 'render/bg_unpack.asm'
         include 'render/intro_dma.asm'
         include 'intro/text_objects.asm'
         include 'intro/text_trails.asm'
@@ -214,7 +215,8 @@ CPU_Stop:
         include '../build/intro-colours.inc' ;original GSU colour descriptors
         include '../build/level-shapes.inc' ;level shape catalog data
         include 'level/level_video.asm' ;level BG/script data
-        include '../build/level-backgrounds.inc' ;stage backgrounds (level_backgrounds.asm)
+        include '../build/packed-2d/level-backgrounds.inc' ;stage BG descriptors and programs
+        include '../build/packed-2d/assets.inc'
 
 ; One outstanding job. Host owns inputs until completion; DSP owns outputs.
 ; Read XST_STATUS once before sending to discard any old completion flag.

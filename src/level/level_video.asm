@@ -6,24 +6,13 @@ M4_LEVEL_HUD_TILES equ $f420 ;HUD tile bank, sized by the extracted parameters
 M4_LEVEL_HUD equ $ffd848 ;1: level HUD sprites chained after the footer mask
         include '../build/level-hud.inc'
 M4LevelVideoInit:
-        move.w sr,-(sp)
-        ori.w #$0700,sr
         move.w #M4_LEVEL_BG_TILES,d0
-        jsr M4TextVideoWriteAddress
         lea M4LevelBgTiles,a0
-        move.w #(M4LevelBgTilesEnd-M4LevelBgTiles)/4-1,d1
-M4LvVideoTiles:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4LvVideoTiles
+        jsr M4BgUpload
         move.w #$e000,d0
-        jsr M4TextVideoWriteAddress
         lea M4LevelBgPlaneB,a0
-        move.w #1023,d1
-M4LvVideoPlane:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4LvVideoPlane
+        jsr M4BgUpload
         move.w #$8731,VDP_CTRL ;backdrop: palette3 colour1, reserved black
-        move.w (sp)+,sr
         lea M4LevelBgCram,a0
         lea M4_BASE_CRAM,a1
         moveq #63,d1
@@ -44,23 +33,12 @@ M4LvVideoScene:
         move.w #LV_HUD_OUTLINE,M4_BASE_CRAM+96+13*2
         move.w #LV_HUD_BOSSEDGE,M4_BASE_CRAM+96+14*2
         move.w #LV_HUD_BOSSFILL,M4_BASE_CRAM+96+5*2
-        move.w sr,-(sp)
-        ori.w #$0700,sr
         move.w #M4_LEVEL_HUD_TILES,d0
-        jsr M4TextVideoWriteAddress
         lea M4LevelHudTiles,a0
-        move.w #65*8-1,d1
-M4LvVideoHud:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4LvVideoHud
-        move.w #M4_LEVEL_MSG_TILES,d0 ;OBJ texts SCRAMBLE / STAGE- 1
-        jsr M4TextVideoWriteAddress
+        jsr M4BgUpload
+        move.w #M4_LEVEL_MSG_TILES,d0 ;OBJ texts SCRAMBLE / STAGE
         lea M4LvMsgTiles,a0
-        move.w #M4_LEVEL_MSG_COUNT*8-1,d1
-M4LvVideoMsg:
-        move.l (a0)+,VDP_DATA
-        dbra d1,M4LvVideoMsg
-        move.w (sp)+,sr
+        jsr M4BgUpload
         lea M4LvMsgColours,a0
 M4LvVideoMsgColour:
         move.w (a0)+,d0 ;CRAM byte offset
@@ -99,17 +77,10 @@ M4LvVideoHScroll:
         rts
 
         even
-M4LevelBgTiles:
-        incbin '../build/corneria-bg-tiles.md.bin'
-M4LevelBgTilesEnd:
-M4LevelBgPlaneB:
-        incbin '../build/corneria-bg-planeb.md.bin'
 M4LevelBgCram:
         incbin '../build/corneria-bg-cram.md.bin'
 M4LevelScenePalette:
         incbin '../build/level-scene-palette.md.bin'
-M4LevelHudTiles:
-        incbin '../build/level-hud-tiles.bin'
 M4Map0DBytes: ;0D:8000..FFFF (map scripts of every stage and screen)
         incbin '../build/map0d.bin'
 M4Map05Bytes: ;05:8000..FFFF (map subroutines reached with mapjsr/mapgoto)
