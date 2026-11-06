@@ -81,8 +81,11 @@ def capture():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         results = dict(pool.map(run, jobs.items()))
+    init = data['original_banks'][0]
+    assert init['name'] == 'init'
     (OUT / 'score-traces.json').write_text(json.dumps(dict(rom_sha256=data['rom_sha256'],
-        converter_sha256=version, banks=banks, traces=results), indent=2) + '\n')
+        converter_sha256=version, init_bank=dict(name=init['name'], initial_command=init['initial_command']),
+        banks=banks, traces=results), indent=2) + '\n')
     print(f'{len(banks)} banks, {len(results)} original command traces')
     unresolved = [k for k, v in results.items() if v['loop_end'] < 0 and v['song_end'] < 0]
     print('Commands without end/loop:', len(unresolved))

@@ -9,7 +9,7 @@ import struct
 import subprocess
 import importlib.util
 from pathlib import Path
-from catalog import ROOT, inventory
+from catalog import ROOT
 
 OUT = ROOT/'build/mdsdrv'
 DRIVER = Path(os.environ.get('MEGASVP_MDSDRV', ROOT.parent/'MDSDRV')).resolve()
@@ -331,9 +331,12 @@ def pack(rom, symbols):
     labels['ReleaseMDSSeq']=sequence_address
     rom[sequence_address:sequence_address+len(seq)]=seq
     assets['sequences']['sha256']=hashlib.sha256(seq).hexdigest()
-    catalog=inventory(include_arrangements=False);initial=bytearray();banks=bytearray(35*40)
+    trace_data=json.loads((ROOT/'build/audio-native/score-traces.json').read_text())
+    original_banks=[trace_data['init_bank'], *trace_data['banks']]
+    assert len(original_banks)==35
+    initial=bytearray();banks=bytearray(35*40)
     commands=manifest['commands']
-    for i,bank in enumerate(catalog['original_banks']):
+    for i,bank in enumerate(original_banks):
         labels['ReleaseBank_'+bank['name']]=i
         initial+=struct.pack('>H',bank['initial_command'])
         for command,song in commands.get(bank['name'],{}).items():struct.pack_into('>H',banks,i*40+int(command)*2,song)
@@ -366,7 +369,6 @@ def pack(rom, symbols):
     labels['ReleaseContinuousTable']=control('continuous_pairs',pairs)
     # Original musical clock and playlist bounds drive fades/warp controls.
     clock_table=bytearray((manifest['songs']+1)*8)
-    trace_data=json.loads((ROOT/'build/audio-native/score-traces.json').read_text())
     source_banks={b['name']:b for b in trace_data['banks']}
     _,source_origins=content.origins();tempo_assets={}
     for row in manifest['music']['songs']:

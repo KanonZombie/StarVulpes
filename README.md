@@ -34,13 +34,42 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
 La compilación usa un directorio temporal para la extracción y el
 ensamblado. Su única salida en `build/` es `StarVulpes.bin`.
 Con `./rebuild.ps1 -KeepIntermediates` se conservan los recursos, listados e
-informes de diagnóstico. Para compilar incrementalmente, `./extract_sf.ps1`
-regenera los recursos y `./build.ps1` reutiliza la extracción.
+informes de diagnóstico.
 
 El build convierte 52 secuencias musicales desde el SPC de la ROM, con
 temas de las etapas, jefes y créditos. Recupera las notas, la duración y
 los puntos de retorno del original. Usa timbres FM/PSG adaptados y
 percusión extraída del BRR original.
+
+## Editar los datos extraídos
+
+`./extract_sf.ps1` lee el volcado y escribe los recursos en `build/`.
+Las tablas `.inc` son texto de ensamblador editable, con direcciones de
+origen. `build/m4-andross-panels.inc` contiene posiciones y tiempos,
+`build/m4-flight-space.inc` los límites de vuelo en el espacio,
+`build/m4-route-parameters.inc` los valores de inicio y cambios de ruta y
+`build/m4-title-parameters.inc` los ángulos y tiempos del título.
+`build/m4-weapon-sounds.inc` contiene los sonidos por arma,
+`build/m4-arrow-masks.inc` y `build/m4-arrow-bits.inc` las máscaras del HUD,
+y `build/level-result-faces.inc` los selectores de retratos de resultados.
+`build/level-hud.json` contiene las alturas, márgenes, colores y paleta de
+las barras de escudo, boost y jefe. `build.ps1` regenera sus tiles y vuelve
+a empaquetar los gráficos a partir de los archivos extraídos. Escudo y
+boost comparten el ancho, el margen horizontal y el color del marco.
+`build/audio-native/music-commands.json` permite editar los comandos
+musicales por dirección de origen. Durante la extracción, los decodificadores
+leen sus patrones de scripts y firmas de comprobación del volcado.
+
+El flujo también genera recursos en formato binario para la consola,
+como tiles, mapas comprimidos y muestras PCM. Algunas herramientas de
+diagnóstico exportan imágenes PNG para inspección.
+`build/extraction-references.json` documenta las referencias binarias de
+esta extracción como hexadecimal con direcciones de origen. Los JSON de
+fondos describen los valores decodificados y los recursos convertidos.
+
+Después de retocar esos archivos, ejecuta `./build.ps1`. El ensamblado
+reutiliza la extracción vigente y puede ejecutarse con el volcado apartado.
+`./rebuild.ps1` vuelve a extraer del volcado y compila en ese orden.
 
 ## Cambiar la música
 
