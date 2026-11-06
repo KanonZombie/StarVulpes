@@ -6,6 +6,10 @@ param(
     [string]$MusicManifest
 )
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion -lt [version]'7.2') {
+    & (Join-Path $PSScriptRoot 'tools/run-pwsh.ps1') $PSCommandPath $PSBoundParameters
+    return
+}
 if ($MusicManifest) {
     if ($Target -ne 'm4-intro') { throw '-MusicManifest requiere el objetivo m4-intro.' }
     if (-not (Test-Path -LiteralPath $MusicManifest -PathType Leaf)) { throw "Falta el manifiesto: $MusicManifest" }

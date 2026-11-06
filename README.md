@@ -11,7 +11,7 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
    cabecera de copiador, en `ref/Star Fox (USA).sfc`. El build exige SHA-256
    `3857b5294ea8f7468849437bb2d8271564e8a0ff30774622e9c872bcbd53a84d`.
 2. Instala PowerShell 7.2 o posterior, Python 3.14 y Visual Studio C++ Build Tools con las
-   herramientas x64. Ejecuta `./tools/setup-python.ps1` desde PowerShell 7.
+   herramientas x64. Ejecuta `./tools/setup-python.ps1` desde PowerShell 7 para crear `.venv`.
 3. Configura las herramientas locales mediante variables de entorno o copiando
    `megasvp.local.example.json` a `megasvp.local.json`.
 
@@ -27,7 +27,8 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
    de Windows de MDSDRV. [Emu EX Plus Alpha](https://github.com/Rakashazi/emu-ex-plus-alpha),
    [MDSDRV](https://github.com/superctr/MDSDRV)
 
-4. Ejecuta `./rebuild.ps1`. La ROM de 2 MiB se genera en
+4. Ejecuta `./rebuild.ps1`. Desde Windows PowerShell 5.1, el script se
+   relanza automáticamente con PowerShell 7. La ROM de 2 MiB se genera en
    `build/megasvp-m4-intro.bin`. Usa un emulador compatible con SVP.
 
 `./extract_sf.ps1` regenera los recursos. `./build.ps1` reutiliza la

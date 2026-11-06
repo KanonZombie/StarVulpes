@@ -5,6 +5,10 @@ param(
     [string]$MusicManifest
 )
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion -lt [version]'7.2') {
+    & (Join-Path $PSScriptRoot 'tools/run-pwsh.ps1') $PSCommandPath $PSBoundParameters
+    return
+}
 Set-StrictMode -Version Latest
 if ($MusicManifest -and $Target -ne 'm4-intro') { throw '-MusicManifest requiere el objetivo m4-intro.' }
 # Assembly only: build/ must already hold the data extracted from the Star Fox

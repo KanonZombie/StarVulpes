@@ -7,6 +7,10 @@
 # checked by build.ps1 to refuse stale or missing generated data.
 param()
 $ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSVersion -lt [version]'7.2') {
+    & (Join-Path $PSScriptRoot 'tools/run-pwsh.ps1') $PSCommandPath $PSBoundParameters
+    return
+}
 Set-StrictMode -Version Latest
 $projectRoot = $PSScriptRoot
 . (Join-Path $projectRoot 'tools/stage-common.ps1')
