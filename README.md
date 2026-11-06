@@ -29,11 +29,13 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
 
 4. Ejecuta `./rebuild.ps1`. Desde Windows PowerShell 5.1, el script se
    relanza automáticamente con PowerShell 7. La ROM de 2 MiB se genera en
-   `build/megasvp-m4-intro.bin`. Usa un emulador compatible con SVP.
+   `build/StarVulpes.bin`. Usa un emulador compatible con SVP.
 
-`./extract_sf.ps1` regenera los recursos. `./build.ps1` reutiliza la
-extracción vigente para cambios en el ensamblador. Las salidas y los
-informes locales se guardan en `build/` y `evidence/`.
+La compilación usa un directorio temporal para la extracción y el
+ensamblado. Su única salida en `build/` es `StarVulpes.bin`.
+Con `./rebuild.ps1 -KeepIntermediates` se conservan los recursos, listados e
+informes de diagnóstico. Para compilar incrementalmente, `./extract_sf.ps1`
+regenera los recursos y `./build.ps1` reutiliza la extracción.
 
 El build convierte 52 secuencias musicales desde el SPC de la ROM, con
 temas de las etapas, jefes y créditos. Recupera las notas, la duración y

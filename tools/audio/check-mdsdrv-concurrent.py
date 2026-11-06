@@ -28,7 +28,7 @@ class CPU(host.AudioCPU):
 
 
 def main():
-    folder=ROOT/'build/mdsdrv';rom=(ROOT/'build/megasvp-m4-intro.bin').read_bytes()
+    folder=ROOT/'build/mdsdrv';rom=host.read_built_rom()
     manifest=json.loads((folder/'manifest.json').read_text());packed=json.loads((folder/'packed.json').read_text())
     labels=load_listing(folder/'release/release.lst');driver=packed['assets']['driver']['address']
     listing=(folder/'driver/out/mdsdrv.lst').read_text()

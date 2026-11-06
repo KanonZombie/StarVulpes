@@ -15,7 +15,11 @@ if (-not (Test-Path -LiteralPath $pwsh -PathType Leaf)) {
 }
 
 $forwarded = @(foreach ($binding in $BoundArguments.GetEnumerator()) {
-    if ($binding.Value) { "-$($binding.Key):$($binding.Value)" }
+    if ($binding.Value -is [switch]) {
+        if ($binding.Value.IsPresent) { "-$($binding.Key)" }
+    } elseif ($binding.Value) {
+        "-$($binding.Key):$($binding.Value)"
+    }
 })
 Write-Host 'Continuando en PowerShell 7.'
 & $pwsh -NoLogo -NoProfile -File $ScriptPath @forwarded

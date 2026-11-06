@@ -30,12 +30,13 @@ El banco compilado también incluye los efectos y las voces.
 3. Desde la raíz del proyecto, en PowerShell 7, ejecuta el build con la lista.
 
    ```powershell
-   ./build.ps1 -MusicManifest ./music/local/tracks.json
+   ./rebuild.ps1 -MusicManifest ./music/local/tracks.json
    ```
 
-   Para una primera compilación usa `./rebuild.ps1 -MusicManifest ./music/local/tracks.json`.
-   La salida es `build/megasvp-m4-intro.bin`. Ejecutar `./build.ps1` sin la opción
-   vuelve a compilar el catálogo por defecto. Git ignora `music/local/` y `build/`.
+   En el repositorio público, la salida es `build/StarVulpes.bin`. Para
+   reutilizar una extracción vigente, usa `./build.ps1` con el mismo
+   parámetro. Ejecutar el build sin `-MusicManifest` vuelve al catálogo por
+   defecto. Git ignora `music/local/` y `build/`.
 
 ## Identificadores de temas
 

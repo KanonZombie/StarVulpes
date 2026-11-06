@@ -1,5 +1,5 @@
 param(
-    # Official game output: build/megasvp-m4-intro.bin, including MDSDRV.
+    # The official game target includes MDSDRV.
     [ValidateSet('m4-intro', 'm4-level-boss', 'm4-level-profile', 'm4-intro-vr-stress')][string]$Target = 'm4-intro',
     [string]$Asm68k = $env:MEGASVP_ASM68K,
     [string]$MusicManifest
@@ -19,7 +19,8 @@ $previousAssembler = $env:MEGASVP_ASM68K
 try {
 $projectRoot = $PSScriptRoot
 $buildDir = Join-Path $projectRoot 'build'
-$romPath = Join-Path $buildDir "megasvp-$Target.bin"
+$romName = Get-MegaSvpRomName $projectRoot $Target
+$romPath = Join-Path $buildDir $romName
 $manifestPath = Join-Path $buildDir "$Target-build.json"
 $pendingPath = Join-Path $buildDir "$Target.pending.bin"
 New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
@@ -112,7 +113,7 @@ try {
     }
     [ordered]@{
         built_utc = [DateTime]::UtcNow.ToString('o')
-        rom = "build/megasvp-$Target.bin"
+        rom = "build/$romName"
         target = $Target
         entry = "src/$entry"
         bitmap_layout = 'vr-paired'

@@ -1,6 +1,7 @@
 # Validación
 
-Compila con `./rebuild.ps1` siguiendo el [README](README.md). El
+Compila con `./rebuild.ps1 -KeepIntermediates` para conservar los archivos
+de diagnóstico que usan estas comprobaciones. El
 ensamblador comprueba las firmas SVP, el vector de reset y la correspondencia
 de las 52 copias SSP y las 78 fuentes del fork gráfico. El integrador comprueba
 la ubicación y los hashes de los recursos de audio dentro de la ROM de 2 MiB.

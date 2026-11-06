@@ -8,6 +8,14 @@ ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'tools'))
 from m68k_sim import M68K,load_listing
 
+
+def read_built_rom():
+    manifest = ROOT / 'build/m4-intro-build.json'
+    if not manifest.is_file():
+        raise FileNotFoundError('Para esta comprobación, ejecuta ./rebuild.ps1 -KeepIntermediates.')
+    return (ROOT / json.loads(manifest.read_text(encoding='utf-8-sig'))['rom']).read_bytes()
+
+
 class AudioCPU(M68K):
     def __init__(self,rom):
         super().__init__(rom);self.io=bytearray(0x20000);self.vdp=bytearray(32);self.io[0x11100]=1
@@ -19,7 +27,7 @@ class AudioCPU(M68K):
 
 
 def main():
-    rom=(ROOT/'build/megasvp-m4-intro.bin').read_bytes()
+    rom=read_built_rom()
     s=load_listing(ROOT/'build/m4-intro.lst');r=load_listing(ROOT/'build/audio-release/release.lst')
     metadata=json.loads((ROOT/'build/release-integration.json').read_text())
     packed=json.loads((ROOT/'build/audio-native/packed.json').read_text())

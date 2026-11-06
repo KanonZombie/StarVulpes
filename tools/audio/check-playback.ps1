@@ -17,7 +17,14 @@ $cfg=Join-Path $out 'config.ini'
 $config | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $cfg -Encoding utf8
 $env:MEGASVP_AUDIO_PLAYBACK=$out.Replace('\','/')
 $env:MEGASVP_AUDIO_FRAMES=[string]$Frames
-if (-not $Rom) { $Rom=Join-Path $root 'build/megasvp-m4-intro.bin' }
+if (-not $Rom) {
+    $name = if (Test-Path -LiteralPath (Join-Path $root 'tools/starvulpes-build.ps1') -PathType Leaf) {
+        'StarVulpes.bin'
+    } else {
+        'megasvp-m4-intro.bin'
+    }
+    $Rom = Join-Path $root "build/$name"
+}
 if (-not $Lua) { $Lua=Join-Path $root 'tools/audio/release-playback.lua' }
 $wav=Join-Path $out 'audio.wav'
 foreach ($name in @('audio.wav','state.txt','driver-helpers.bin','host.ram')) {

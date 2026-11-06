@@ -34,6 +34,13 @@ function Enter-MegaSvpBuildLock([string]$Root) {
     return $mutex
 }
 
+function Get-MegaSvpRomName([string]$Root, [string]$Target) {
+    if ($Target -eq 'm4-intro' -and (Test-Path -LiteralPath (Join-Path $Root 'tools/starvulpes-build.ps1') -PathType Leaf)) {
+        return 'StarVulpes.bin'
+    }
+    return "megasvp-$Target.bin"
+}
+
 # Hash of the extraction code: the scripts run by extract_sf.ps1, the stage
 # modules tools/stages/*.py and, transitively, every tools/*.py they name
 # ('x.py' / 'x-y.py' strings for runpy) or import (import cpu65816, ...).

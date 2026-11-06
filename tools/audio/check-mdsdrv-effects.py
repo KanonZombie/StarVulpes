@@ -19,7 +19,7 @@ runtime=importlib.util.module_from_spec(spec);spec.loader.exec_module(runtime)
 
 def main():
     out=ROOT/'build/mdsdrv'
-    rom=(ROOT/'build/megasvp-m4-intro.bin').read_bytes()
+    rom=runtime.host.read_built_rom()
     manifest=json.loads((out/'manifest.json').read_text());packed=json.loads((out/'packed.json').read_text())
     music=manifest['music_enabled']
     music_pcm=manifest.get('music_pcm',False)
