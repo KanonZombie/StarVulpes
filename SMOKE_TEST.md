@@ -1,5 +1,36 @@
 # Validación
 
+## Extractor SPC precompilado
+
+La extracción normal usa `tools/audio/ensure-spc-trace.ps1`: descarga la
+versión y URL fijadas en `tools/audio/spc-trace.json` y verifica SHA-256.
+`trace-score.py` vuelve a comprobar el ejecutable antes de ejecutarlo.
+No se requieren Visual Studio ni fuentes de Snes9x. Procedimiento y
+reconstrucción opcional en [SPC_TRACE.md](tools/audio/SPC_TRACE.md).
+
+Validación de la versión 1.0.0:
+
+- Descarga anónima real y reutilización del caché con la red bloqueada.
+- Rechazo de un ejecutable existente corrupto y de una descarga con hash
+  incorrecto. Eliminación de descargas parciales ante fallos de transporte.
+- Dos compilaciones y reconstrucción desde el paquete de fuentes con
+  ejecutables idénticos. Dependencia dinámica única: `KERNEL32.dll`.
+- Tema con loop y créditos completos: trazas idénticas al extractor anterior,
+  incluidos los tiempos de retorno y finalización.
+- Los 227 contextos de trazas coinciden con la extracción anterior.
+  `./rebuild.ps1 -KeepIntermediates`, con solo la ROM comercial en `ref/`
+  y sin `MEGASVP_SPC_CORE` válido, produce la misma ROM de 2.097.152 bytes,
+  checksum `$2128` y SHA-256 indicado al final de este documento.
+- `trace-score.py` rechaza también un ejecutable sustituido después de la
+  descarga. Las comprobaciones de audio pasan: 35 bancos, 52 secuencias
+  musicales y 50 efectos recuperados.
+- El rebuild normal desde Windows PowerShell 5.1, que se relanza con
+  PowerShell 7, produce la misma ROM y deja únicamente `StarVulpes.bin`
+  en `build/`. Se probó también con una configuración antigua que apunta
+  `MEGASVP_SPC_CORE` a un directorio inexistente: ya no es una dependencia.
+
+## Compilación y audio
+
 Compila con `./rebuild.ps1 -KeepIntermediates` para conservar los archivos
 de diagnóstico que usan estas comprobaciones. El
 ensamblador comprueba las firmas SVP, el vector de reset y la correspondencia

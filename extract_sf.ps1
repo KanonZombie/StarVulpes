@@ -63,8 +63,8 @@ try {
     Invoke-Tool 'extract-sf-sfx.py'
     Invoke-Tool 'audio/render-sfx.py'  # full-band captures for MDSDRV: build.ps1 needs no FFmpeg
     # Inputs of the MDSDRV audio integration (build.ps1): original SPC score
-    # traces (offline converter, MSVC) and the compact SFX set from sf-sfx.
-    & (Join-Path $projectRoot 'tools/audio/build-spc-trace.ps1')
+    # traces (pinned offline converter) and the compact SFX set from sf-sfx.
+    & (Join-Path $projectRoot 'tools/audio/ensure-spc-trace.ps1')
     foreach ($script in @('audio/trace-score.py', 'audio/compact-sfx.py', 'audio/music-events.py')) { Invoke-Tool $script }
     [ordered]@{
         extracted_utc = [DateTime]::UtcNow.ToString('o')

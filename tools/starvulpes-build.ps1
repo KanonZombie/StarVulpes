@@ -21,12 +21,8 @@ if ($MusicManifest) { $MusicManifest = (Resolve-Path -LiteralPath $MusicManifest
 $tools = @{
     MEGASVP_PYTHON = Resolve-MegaSvpPython $root
     MEGASVP_MDSDRV = $env:MEGASVP_MDSDRV
-    MEGASVP_SPC_CORE = $env:MEGASVP_SPC_CORE
 }
 if (-not $tools.MEGASVP_MDSDRV) { $tools.MEGASVP_MDSDRV = Join-Path (Split-Path -Parent $root) 'MDSDRV' }
-if (-not $tools.MEGASVP_SPC_CORE) {
-    $tools.MEGASVP_SPC_CORE = Join-Path $root 'ref/emu-ex-plus-alpha-master/emu-ex-plus-alpha-master/Snes9x/src/snes9x/apu/bapu/smp'
-}
 if ($env:MEGASVP_FFMPEG) { $tools.MEGASVP_FFMPEG = $env:MEGASVP_FFMPEG }
 
 $previous = @{}

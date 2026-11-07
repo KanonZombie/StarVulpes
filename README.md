@@ -10,8 +10,9 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
 1. Coloca el volcado **Star Fox (USA), revisión 0**, de 1.048.576 bytes y sin
    cabecera de copiador, en `ref/Star Fox (USA).sfc`. El build exige SHA-256
    `3857b5294ea8f7468849437bb2d8271564e8a0ff30774622e9c872bcbd53a84d`.
-2. Instala PowerShell 7.2 o posterior, Python 3.14 y Visual Studio C++ Build Tools con las
-   herramientas x64. Ejecuta `./tools/setup-python.ps1` desde PowerShell 7 para crear `.venv`.
+2. En Windows x64, instala PowerShell 7.2 o posterior y Python 3.14.
+   Ejecuta `./tools/setup-python.ps1` desde PowerShell 7 para crear `.venv`.
+   No se necesitan Visual Studio ni fuentes de Snes9x.
 3. Configura las herramientas locales mediante variables de entorno o copiando
    `megasvp.local.example.json` a `megasvp.local.json`.
 
@@ -19,13 +20,10 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
    | --- | --- |
    | `MEGASVP_ASM68K` | Ruta de SN 68k `asm68k.exe` 2.53 |
    | `MEGASVP_FFMPEG` | FFmpeg con el demuxer `libgme` |
-   | `MEGASVP_SPC_CORE` | Directorio `apu/bapu/smp` de Snes9x con `smp.hpp`, `core.cpp`, `algorithms.cpp`, `memory.cpp` y `timing.cpp` |
    | `MEGASVP_MDSDRV` | Directorio MDSDRV 0.6 con `src/` y `tools/` (`mdslink.exe`, `sjasmplus.exe`, `salvador.exe`) |
 
-   La combinación comprobada usa el SMP de
-   `Snes9x/src/snes9x/apu/bapu/smp` de Emu EX Plus Alpha y las herramientas
-   de Windows de MDSDRV. [Emu EX Plus Alpha](https://github.com/Rakashazi/emu-ex-plus-alpha),
-   [MDSDRV](https://github.com/superctr/MDSDRV)
+   Herramientas de audio y compresión:
+   [MDSDRV](https://github.com/superctr/MDSDRV).
 
 4. Ejecuta `./rebuild.ps1`. Desde Windows PowerShell 5.1, el script se
    relanza automáticamente con PowerShell 7. La ROM de 2 MiB se genera en
@@ -35,6 +33,13 @@ La compilación usa un directorio temporal para la extracción y el
 ensamblado. Su única salida en `build/` es `StarVulpes.bin`.
 Con `./rebuild.ps1 -KeepIntermediates` se conservan los recursos, listados e
 informes de diagnóstico.
+
+La extracción descarga automáticamente el extractor SPC para Windows x64
+desde una release fija y verifica su SHA-256 antes de ejecutarlo. Requiere
+Internet para descargarlo; con intermedios conservados reutiliza la copia
+verificada. El ejecutable incluye el intérprete SMP y el runtime de C++;
+no incluye datos de Star Fox ni la ROM de arranque IPL.
+[Versión, verificación y reconstrucción opcional](tools/audio/SPC_TRACE.md).
 
 El build convierte 52 secuencias musicales desde el SPC de la ROM, con
 temas de las etapas, jefes y créditos. Recupera las notas, la duración y

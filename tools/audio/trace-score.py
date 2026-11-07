@@ -6,10 +6,8 @@ code. Infinite repeats are recovered at ks20, not inferred from a WAV fade.
 import concurrent.futures
 import hashlib
 import json
-import os
 import struct
 import subprocess
-from pathlib import Path
 from catalog import ROOT, inventory, sbn, upload
 
 OUT = ROOT / 'build/audio-native'
@@ -32,13 +30,10 @@ def capture():
     OUT.mkdir(parents=True, exist_ok=True)
     data = inventory(include_arrangements=False)
     jobs, banks = {}, []
-    interpreter = Path(os.environ['MEGASVP_SPC_CORE'])
-    digest = hashlib.sha256((ROOT / 'tools/audio/spc-trace.cpp').read_bytes())
-    for path in sorted(interpreter.rglob('*')):
-        if path.suffix in ('.cpp', '.hpp'):
-            digest.update(path.relative_to(interpreter).as_posix().encode())
-            digest.update(path.read_bytes())
-    version = digest.hexdigest()
+    converter = json.loads((ROOT / 'tools/audio/spc-trace.json').read_text())
+    version = hashlib.sha256((OUT / 'spc-trace.exe').read_bytes()).hexdigest()
+    if version != converter['sha256']:
+        raise RuntimeError('SHA-256 incorrecto del extractor SPC; no se ejecutara.')
     for bank in data['original_banks']:
         if bank['name'] == 'init':
             continue

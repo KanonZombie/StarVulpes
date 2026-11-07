@@ -15,6 +15,9 @@ if (Test-Path -LiteralPath $megaSvpLocal -PathType Leaf) {
         if ($entry.Name -notin $MegaSvpToolVariables) {
             throw "megasvp.local.json: clave desconocida $($entry.Name) (validas: $($MegaSvpToolVariables -join ', '))."
         }
+        # Accepted for old configs, but never required by extraction/build.
+        # Optional converter builds use -Core or the environment explicitly.
+        if ($entry.Name -eq 'MEGASVP_SPC_CORE') { continue }
         if ([Environment]::GetEnvironmentVariable($entry.Name)) { continue }
         $toolPath = [string]$entry.Value
         if (-not [IO.Path]::IsPathRooted($toolPath)) { $toolPath = Join-Path (Split-Path -Parent $PSScriptRoot) $toolPath }
@@ -55,6 +58,8 @@ function Get-MegaSvpExtractionInputs([string]$Root) {
     foreach ($n in $names) { $queue.Enqueue((Join-Path $tools $n)) }
     $queue.Enqueue((Join-Path $tools 'audio/spc-trace.cpp'))
     $queue.Enqueue((Join-Path $tools 'audio/build-spc-trace.ps1'))
+    $queue.Enqueue((Join-Path $tools 'audio/ensure-spc-trace.ps1'))
+    $queue.Enqueue((Join-Path $tools 'audio/spc-trace.json'))
     foreach ($f in Get-ChildItem -LiteralPath (Join-Path $tools 'stages') -Filter '*.py' -File) { $queue.Enqueue($f.FullName) }
     while ($queue.Count) {
         $f = $queue.Dequeue()
