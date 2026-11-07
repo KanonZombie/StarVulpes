@@ -11,6 +11,7 @@ import subprocess
 from catalog import ROOT, inventory, sbn, upload
 
 OUT = ROOT / 'build/audio-native'
+CONVERTER = ROOT / 'tools/audio/spc-trace.exe'
 
 
 def memory(bank):
@@ -31,7 +32,7 @@ def capture():
     data = inventory(include_arrangements=False)
     jobs, banks = {}, []
     converter = json.loads((ROOT / 'tools/audio/spc-trace.json').read_text())
-    version = hashlib.sha256((OUT / 'spc-trace.exe').read_bytes()).hexdigest()
+    version = hashlib.sha256(CONVERTER.read_bytes()).hexdigest()
     if version != converter['sha256']:
         raise RuntimeError('SHA-256 incorrecto del extractor SPC; no se ejecutara.')
     for bank in data['original_banks']:
@@ -63,7 +64,7 @@ def capture():
             # is not a licence to invent an infinite loop or truncate it.
             if old['loop_end']>=0 or old['song_end']>=0 or old.get('limit_seconds')==900:
                 return key,old
-        result = subprocess.run([str(OUT / 'spc-trace.exe'), str(ramfile), str(trace), '0', str(cmd), '900'],
+        result = subprocess.run([str(CONVERTER), str(ramfile), str(trace), '0', str(cmd), '900'],
                                 capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError(f'SPC trace {key}, command {cmd}: {result.stderr.strip()}')

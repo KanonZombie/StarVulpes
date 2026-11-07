@@ -1,54 +1,51 @@
 # Extractor SPC offline
 
-La extracción descarga `spc-trace.exe` para Windows x64 desde la release
-[spc-trace-v1.0.0](https://github.com/KanonZombie/StarVulpes/releases/tag/spc-trace-v1.0.0).
-La URL y el SHA-256 esperado están fijados en `spc-trace.json`. Tanto la
-descarga como `trace-score.py` verifican el ejecutable antes de usarlo.
-No se necesitan Visual Studio, Visual C++ Redistributable ni fuentes de
-Snes9x para extraer o compilar el juego.
+`tools/audio/spc-trace.exe` está versionado en el repositorio y queda
+disponible con el checkout. La extracción usa directamente ese archivo
+para Windows x64: no descarga herramientas ni necesita Visual Studio,
+Visual C++ Redistributable o una instalación de Snes9x.
 
-`ensure-spc-trace.ps1` conserva el ejecutable en `build/audio-native/` y
-reutiliza esa copia solo si coincide su hash. Una descarga incompleta o
-con hash incorrecto se descarta; un ejecutable existente incorrecto causa
-un error y debe eliminarse antes de repetir. No hay compilación ni descarga
-de otra versión como alternativa silenciosa. La primera descarga requiere
-Internet; una copia previamente verificada permite extraer sin conexión.
-En el build limpio, la herramienta vive en la copia temporal y se elimina
-con los demás intermedios. La salida sigue siendo `build/StarVulpes.bin`.
+`ensure-spc-trace.ps1` y `trace-score.py` comprueban su SHA-256 contra
+`spc-trace.json` antes de usarlo. Si falta o está alterado, la extracción
+falla; restaura el archivo desde Git. No hay descarga ni compilación
+automática como alternativa. En el build limpio se copia con `tools/` al
+directorio temporal; el original permanece en el checkout y en `build/`
+solo queda `StarVulpes.bin`.
 
 La herramienta ejecuta el driver SPC obtenido del volcado local y registra
-eventos, tiempos y bucles. El binario distribuido contiene nuestro adaptador
-y el intérprete SMP de Snes9x/bapu; no contiene el driver original, música,
-muestras ni ROM de arranque IPL. El IPL se sustituye por ceros y se rechaza
-su ejecución. Ningún intérprete SPC se incorpora al cartucho Mega Drive.
+eventos, tiempos y bucles. Contiene nuestro adaptador y el intérprete SMP
+de Snes9x/bapu; no contiene el driver original, música, muestras ni ROM
+de arranque IPL. El IPL se sustituye por ceros y se rechaza su ejecución.
+El intérprete SPC no se incorpora al cartucho Mega Drive.
 
-## Reconstrucción opcional para desarrolladores
+## Fuentes, licencia y reconstrucción opcional
 
-La misma release publica `spc-trace-v1.0.0-source.zip`, con el adaptador,
-el script de compilación, las diez unidades SMP necesarias, su procedencia,
-hashes y licencia. Se excluyen expresamente `iplrom.cpp` y el resto del
-emulador. S-SMP fue escrito por byuu; se conservan los avisos completos de
-Snes9x en `licenses/snes9x-noncommercial.txt`. Sus condiciones de uso no
-comercial se aplican al extractor derivado, no a los datos del juego.
+El checkout contiene el adaptador `spc-trace.cpp`, las diez unidades SMP
+necesarias en `snes9x-smp/` y su procedencia y hashes en
+`snes9x-smp/provenance.json`. Las unidades SMP coinciden con Emu EX Plus
+Alpha, commit `3abb3985c85cbff3530a9ea7f1d0e21458f2d32a`. Se excluyen
+`iplrom.cpp` y el resto del emulador. S-SMP es obra de byuu (2016).
+
+El extractor derivado y su adaptador se distribuyen para uso no comercial
+bajo el aviso completo de Snes9x en `licenses/snes9x-noncommercial.txt`.
+Esas condiciones no conceden derechos sobre los datos del juego.
 
 Solo para reconstruir esta herramienta se necesitan Visual Studio C++
-Build Tools x64 y PowerShell. Descomprime las fuentes y ejecuta:
+Build Tools x64 y PowerShell. Desde la raíz del repo:
 
 ```powershell
 ./tools/audio/build-spc-trace.ps1
 ```
 
-El script encuentra `snes9x-smp/` dentro del paquete y escribe
-`build/audio-native/spc-trace.exe`. En el repo también acepta
-`-Core <directorio-smp>` o `MEGASVP_SPC_CORE`, opcionales para desarrollo.
-Se compila con `/O2 /std:c++17 /EHsc /MT /Brepro` y enlaza con `/Brepro`.
-El runtime es estático. La release registra la versión del compilador y
-los hashes de sus entradas; `/Brepro` no garantiza igualdad entre versiones
-distintas de MSVC. Se comprobaron dos compilaciones idénticas con el mismo
-toolchain.
+El script usa las fuentes SMP incluidas y escribe un nuevo ejecutable en
+`build/audio-native/spc-trace.exe`; no reemplaza automáticamente el
+versionado. También acepta `-Core <directorio-smp>` o `MEGASVP_SPC_CORE`
+para desarrollo. Se compila con `/O2 /std:c++17 /EHsc /MT /Brepro` y
+enlaza con `/Brepro`. El runtime es estático. La procedencia registra el
+toolchain y hashes; no se garantiza igualdad entre versiones de MSVC.
 
-Si modificas el extractor, actualiza el manifiesto local con la nueva
-versión, URL y hash antes de extraer. El hash del ejecutable identifica
-también las trazas cacheadas: se regeneran cuando cambia el convertidor.
-Una publicación oficial debe usar una nueva release; no reemplazar el
-binario de una versión publicada.
+Para adoptar un extractor modificado, copia el ejecutable a
+`tools/audio/spc-trace.exe` y actualiza versión, SHA-256 y procedencia.
+El hash del ejecutable identifica también las trazas cacheadas, que se
+regeneran cuando cambia el convertidor. Publica juntos fuentes, binario,
+manifiesto y avisos. No se necesitan releases para extraer ni compilar.

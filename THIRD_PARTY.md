@@ -16,8 +16,10 @@
   El extractor offline `spc-trace.exe` incluye su intérprete SMP sin modificar
   para ejecutar el controlador SPC extraído localmente. Se distribuye para
   uso no comercial con el aviso completo en `licenses/snes9x-noncommercial.txt`.
-  La [release del extractor](https://github.com/KanonZombie/StarVulpes/releases/tag/spc-trace-v1.0.0)
-  incluye las fuentes exactas usadas, hashes y licencia. Proceden de
+  El checkout incluye el ejecutable en `tools/audio/spc-trace.exe`, el
+  adaptador y las diez unidades SMP en `tools/audio/snes9x-smp/`, con
+  hashes y procedencia. El adaptador se distribuye bajo el mismo aviso
+  no comercial del extractor derivado. Las unidades SMP proceden de
   [Emu EX Plus Alpha](https://github.com/Rakashazi/emu-ex-plus-alpha).
   Se excluye `iplrom.cpp`; nuestro adaptador usa un IPL vacío y rechaza su
   ejecución. El extractor no contiene recursos de Star Fox y no se incorpora

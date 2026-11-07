@@ -1,12 +1,9 @@
-# Optional developer build. Normal extraction downloads the pinned executable.
+# Optional developer build. Normal extraction uses tools/audio/spc-trace.exe.
 param([string]$Core = $env:MEGASVP_SPC_CORE, [string]$OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $core) {
-    $core = Join-Path $root 'snes9x-smp'
-    if (-not (Test-Path -LiteralPath $core)) {
-        $core = Join-Path $root 'ref/emu-ex-plus-alpha-master/emu-ex-plus-alpha-master/Snes9x/src/snes9x/apu/bapu/smp'
-    }
+    $core = Join-Path $PSScriptRoot 'snes9x-smp'
 }
 if (-not (Test-Path -LiteralPath (Join-Path $core 'smp.hpp') -PathType Leaf)) {
     throw 'Falta el núcleo SPC. Defina MEGASVP_SPC_CORE con el directorio bapu/smp de Snes9x.'

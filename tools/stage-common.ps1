@@ -75,6 +75,7 @@ function Get-MegaSvpExtractionInputs([string]$Root) {
     }
     [void]$seen.Add((Join-Path $Root 'extract_sf.ps1'))
     [void]$seen.Add((Join-Path $tools 'stage-common.ps1'))
+    [void]$seen.Add((Join-Path $tools 'audio/spc-trace.exe'))
     return @($seen | Sort-Object)
 }
 

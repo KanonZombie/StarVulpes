@@ -9,6 +9,8 @@
 **/__pycache__/
 *.bin
 !src/audio/drv_xgm2.bin
+*.exe
+!tools/audio/spc-trace.exe
 *.sfc
 *.smc
 *.mdrom

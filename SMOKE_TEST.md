@@ -2,32 +2,28 @@
 
 ## Extractor SPC precompilado
 
-La extracción normal usa `tools/audio/ensure-spc-trace.ps1`: descarga la
-versión y URL fijadas en `tools/audio/spc-trace.json` y verifica SHA-256.
-`trace-score.py` vuelve a comprobar el ejecutable antes de ejecutarlo.
-No se requieren Visual Studio ni fuentes de Snes9x. Procedimiento y
-reconstrucción opcional en [SPC_TRACE.md](tools/audio/SPC_TRACE.md).
+La extracción usa `tools/audio/spc-trace.exe`, incluido en el checkout.
+`ensure-spc-trace.ps1` y `trace-score.py` verifican el SHA-256 fijado en
+`tools/audio/spc-trace.json` antes de ejecutarlo. No descargan herramientas
+ni requieren Visual Studio o fuentes externas de Snes9x. Reconstrucción
+opcional y atribuciones en [SPC_TRACE.md](tools/audio/SPC_TRACE.md).
 
-Validación de la versión 1.0.0:
+Validación del extractor 1.0.0:
 
-- Descarga anónima real y reutilización del caché con la red bloqueada.
-- Rechazo de un ejecutable existente corrupto y de una descarga con hash
-  incorrecto. Eliminación de descargas parciales ante fallos de transporte.
-- Dos compilaciones y reconstrucción desde el paquete de fuentes con
-  ejecutables idénticos. Dependencia dinámica única: `KERNEL32.dll`.
-- Tema con loop y créditos completos: trazas idénticas al extractor anterior,
-  incluidos los tiempos de retorno y finalización.
-- Los 227 contextos de trazas coinciden con la extracción anterior.
-  `./rebuild.ps1 -KeepIntermediates`, con solo la ROM comercial en `ref/`
-  y sin `MEGASVP_SPC_CORE` válido, produce la misma ROM de 2.097.152 bytes,
-  checksum `$2128` y SHA-256 indicado al final de este documento.
-- `trace-score.py` rechaza también un ejecutable sustituido después de la
-  descarga. Las comprobaciones de audio pasan: 35 bancos, 52 secuencias
-  musicales y 50 efectos recuperados.
-- El rebuild normal desde Windows PowerShell 5.1, que se relanza con
-  PowerShell 7, produce la misma ROM y deja únicamente `StarVulpes.bin`
-  en `build/`. Se probó también con una configuración antigua que apunta
-  `MEGASVP_SPC_CORE` a un directorio inexistente: ya no es una dependencia.
+- Verificación sin red del ejecutable incluido. Archivos ausentes o corruptos
+  se rechazan sin descargar ni compilar alternativas. `trace-score.py`
+  también comprueba el ejecutable antes de ejecutarlo.
+- Las diez unidades SMP incluidas coinciden con la revisión upstream
+  registrada y excluyen `iplrom.cpp`. Reconstrucción del ejecutable idéntica
+  con el toolchain registrado. Única DLL importada: `KERNEL32.dll`.
+- Los 227 contextos de trazas coinciden con la extracción anterior,
+  incluidos los loops y el final de los créditos. Audio: 35 bancos,
+  52 secuencias musicales y 50 efectos recuperados sin cambios.
+- El rebuild normal funciona con las llamadas web de PowerShell bloqueadas
+  y deja únicamente `StarVulpes.bin` en `build/`, con los mismos 2.097.152
+  bytes, checksum `$2128` y SHA-256 indicado al final de este documento.
+- Una configuración antigua con `MEGASVP_SPC_CORE` apuntando a un directorio
+  inexistente ya no bloquea las etapas normales.
 
 ## Compilación y audio
 

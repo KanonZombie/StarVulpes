@@ -12,7 +12,7 @@ extrae y convierte los recursos de un volcado de Star Fox para SNES.
    `3857b5294ea8f7468849437bb2d8271564e8a0ff30774622e9c872bcbd53a84d`.
 2. En Windows x64, instala PowerShell 7.2 o posterior y Python 3.14.
    Ejecuta `./tools/setup-python.ps1` desde PowerShell 7 para crear `.venv`.
-   No se necesitan Visual Studio ni fuentes de Snes9x.
+   No se necesita instalar Visual Studio ni descargar fuentes de Snes9x.
 3. Configura las herramientas locales mediante variables de entorno o copiando
    `megasvp.local.example.json` a `megasvp.local.json`.
 
@@ -34,10 +34,10 @@ ensamblado. Su única salida en `build/` es `StarVulpes.bin`.
 Con `./rebuild.ps1 -KeepIntermediates` se conservan los recursos, listados e
 informes de diagnóstico.
 
-La extracción descarga automáticamente el extractor SPC para Windows x64
-desde una release fija y verifica su SHA-256 antes de ejecutarlo. Requiere
-Internet para descargarlo; con intermedios conservados reutiliza la copia
-verificada. El ejecutable incluye el intérprete SMP y el runtime de C++;
+El extractor SPC para Windows x64 está incluido en el checkout como
+`tools/audio/spc-trace.exe`. La extracción verifica su SHA-256 antes de
+usarlo; no descarga herramientas. Sus fuentes y atribuciones también están
+incluidas. El ejecutable incorpora el intérprete SMP y el runtime de C++;
 no incluye datos de Star Fox ni la ROM de arranque IPL.
 [Versión, verificación y reconstrucción opcional](tools/audio/SPC_TRACE.md).
 

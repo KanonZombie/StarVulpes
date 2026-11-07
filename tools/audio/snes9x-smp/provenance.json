@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "platform": "windows-x64",
+  "source_repository": "https://github.com/KanonZombie/StarVulpes",
+  "smp_repository": "https://github.com/Rakashazi/emu-ex-plus-alpha",
+  "smp_commit": "3abb3985c85cbff3530a9ea7f1d0e21458f2d32a",
+  "smp_directory": "Snes9x/src/snes9x/apu/bapu/smp",
+  "smp_git_blobs": {
+    "algorithms.cpp": "a55369fbaba4e7bc8e6bf8ad7d49ab86caf5bc19",
+    "core.cpp": "f5c2e6e6fe5cc086977adb9f1452f3b85148db15",
+    "memory.cpp": "3df43b15bd81cdee0ce4c8b9ab2523e9103f8794",
+    "smp.hpp": "e268755ff0e4c0095aaacd2dee423fd54e98e9b4",
+    "timing.cpp": "d278f6f4fcda24302141fb30d3e408801827411b",
+    "core/oppseudo_misc.cpp": "53ec1f302ff662d5ce1fced79f374a9594cb8139",
+    "core/oppseudo_mov.cpp": "9f3f3661997b085beaeafac3ad5299d988e0b8e6",
+    "core/oppseudo_pc.cpp": "5c31d4935c9b6679f9ad34324c6c60d66076dbcc",
+    "core/oppseudo_read.cpp": "330ac6b17fa31423f8144aaebf720703d3c1aa4b",
+    "core/oppseudo_rmw.cpp": "0664c70f4f36e061784c1255582ab331c3cb6182"
+  },
+  "compiler": "MSVC 14.44.35207 Hostx64/x64",
+  "compiler_sha256": "7a154e5136cc538b42e6944997fc5e3bb49112894e41dd88a70940aaff9aa831",
+  "compile_options": "/O2 /std:c++17 /EHsc /MT /Brepro /link /Brepro",
+  "files": {
+    "tools/audio/snes9x-smp/algorithms.cpp": "60d11d0871e9934323b9caae78e0f0270ed4ec083eb1db6cbb39bf5b2126c37c",
+    "tools/audio/snes9x-smp/core/oppseudo_misc.cpp": "7ab0aee29e1ba8144490f4a45986db0ec43c39fb7b39708a071232d89eb898e1",
+    "tools/audio/snes9x-smp/core/oppseudo_mov.cpp": "de015670802074a2220e50941d5976ee62f20d5d41116be33a5d07e80b3973d5",
+    "tools/audio/snes9x-smp/core/oppseudo_pc.cpp": "2a9311e1d4adaaf8573821f093ec8616fd0ca105d57e1a420fe5d529bfd9abaa",
+    "tools/audio/snes9x-smp/core/oppseudo_read.cpp": "c07fa73b7a6e470035c33eeb1dabe6bb329a39b01b4a44eb0db7282a93bafb45",
+    "tools/audio/snes9x-smp/core/oppseudo_rmw.cpp": "f6d3c0bf572102e76210ed64f442290c703d7cd6b91d0e398cd023d31d9ba9f6",
+    "tools/audio/snes9x-smp/core.cpp": "5d701b1988c2e60cebe50135fd591b68bf67f6f82f72e6f1a3978e7bb8962395",
+    "tools/audio/snes9x-smp/memory.cpp": "de117d39c81c610087c08afaba8f2171ef546a561c47f53259e5eef9dca26fd9",
+    "tools/audio/snes9x-smp/smp.hpp": "740a956a67e0ff4823ae1b0ac7e28bfe8649b8a6446ebec007b7d61c1154ee22",
+    "tools/audio/snes9x-smp/timing.cpp": "6263a99d1092e7d8f299e4e9a0985b8a53210020401a5df8b375ccc9692fe980",
+    "tools/audio/spc-trace.cpp": "dca9769b9519c785e34673ffbf71f8b98d022c9f2c96a6da8c38eaa8a5d08ef9"
+  },
+  "excluded": [
+    "iplrom.cpp",
+    "Snes9x frontend",
+    "game ROM",
+    "game driver",
+    "game audio/assets"
+  ],
+  "executable_sha256": "a38f300fa887e08089a1a76543dfd089a397583222d2db58b5fecaab53d0d1d2",
+  "license": "licenses/snes9x-noncommercial.txt"
+}
