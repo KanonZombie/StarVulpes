@@ -8,7 +8,6 @@
 ; precision (tools/check-svp-stars.py compares M4LvwRotation with GSU 01:829F word by word).
 M4_GEO_STARS equ $301c40 ;DRAM 14 WORDs: m_dotsorstars, 70:1A26, viewpos xyz, W 9 WORDs
 M4_STARS_STATE equ $31f600 ;DRAM 362 WORDs, SVP-owned: magic $5344, m_rand 70:0140, 120 x (x,y,z)
-M4_STARS_MODE equ 0 ;70:1A26 (setbginfo 03:EFDC.., levelinfo bits 5/6): 0 in Asteroid 1 ($17)
 
 ; Stage start (initgame3d_l -> minitdust), with the SVP idle (after M4PipeFlush):
 ; the next SVP_Stars seeds the table (m_rand $19F8) before drawing.
@@ -35,7 +34,9 @@ M4LevelStarsInput:
         move.b M4_SC_DOTS,d0 ;dotsflag $16FB ($FF and $16FC $FF: stars)
         ext.w d0
         move.w d0,(a1)+ ;m_dotsorstars: SVP_Stars only acts if negative
-        move.w #M4_STARS_MODE,(a1)+
+        moveq #0,d0
+        move.b M4_MV+30,d0 ;setbginfo 70:1A26, snow=1, pollen=2
+        move.w d0,(a1)+
         lea M4_LVW_POS,a0 ;viewpos (3 WORDs) then W (9 WORDs) are contiguous
         moveq #5,d1
 M4LvsCopy:

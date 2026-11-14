@@ -1,24 +1,8 @@
-"""Venom 2 (maps 0D:E085 orbital / 0D:E0F5 planet, route 2) and Venom 3 (0D:E8B9 / 0D:E929, route 3).
+"""Venom 2/3 orbital and planet graphics from the selected USA ROM.
 
-Loaded by tools/level-shapes.py stage_modules() and the other generators. Owner: build/agent-venom23/
-(VENOM23.md). Strategies: src/stages/level_venom23.asm, which finds every shape by its ROM header
-(M4LevelShapeIndex), so a drawn shape added later with the same header replaces the effect without
-touching the 68000 code. Headers read from ref/Star Fox (USA).sfc (rev0, SHA-256 3857b529...a84d):
-the shapes the ROM itself writes into the objects of these four maps (build/agent-venom23/census.py,
-ROM 65816 executed through tools/path-oracle.py; and the map listings venom23-map-listing.py), minus
-those already catalogued. Names: UltraStarFox (labels only).
-
-SVP drawing: the model geometry now lives in its own ROM block (build/svp-geo-rom.inc), so the shapes
-that fit the SVP limits (<= 85 vertices per model; cmd9 register: 64 vertices / 64 visibility entries per
-object, |coord| < 16384) are drawn (SHAPES, own SVP model). The others stay effect descriptors (svp -1:
-ROM header box, sortz, size and shift for collision, z-remove and explosions; never drawn):
-boss_9_5 C99C (74 vertices, 68 visibility entries > 64), barrier C9B8 (point opcode 8 not decoded by
-tools/recover-intro-model.py) and DCF8 (not decoded). Counts: build/agent-venom23/shape-check.txt
-(shape-check.py).
-
-Dedup: headers literally present in tools/level-shapes.py, tools/generate-level-shapes.py, a stage
-module sorting before this file, or a venom_*.py module (those do not dedup) are skipped (text scan,
-no runpy: meteor*.py runpy the stage modules).
+All models use WORD descriptor indices and the shared 84-vertex,
+76-visibility contract, including the animated barrier and the truck.
+Strategies resolve descriptors through original ROM shape headers.
 """
 import re
 from pathlib import Path
@@ -58,8 +42,8 @@ def _catalogued_elsewhere():
 
 _seen = _catalogued_elsewhere()
 # Not drawable yet (see above): effect descriptors.
-_NO_MODEL = {0xC99C, 0xC9B8, 0xDCF8}
-DRAW_MODELS = False  # True needs INTEGRATION.md section 2 (FX indices > 255 in level_boss1.asm dc.b table)
+_NO_MODEL = set()
+DRAW_MODELS = True  # WORD descriptor indices and 76 visibility flags are supported.
 if DRAW_MODELS:
     SHAPES = [(n, h) for n, h in _SHAPES if h not in _seen and h not in _NO_MODEL]
     EFFECTS = [('V3_' + n.upper(), h, -1) for n, h in _SHAPES if h not in _seen and h in _NO_MODEL]

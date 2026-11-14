@@ -56,7 +56,6 @@ X_COLTAB equ -$8000+28 ;.w alx+$20 ($1CEA): colour table / text string
 X_DEBRIS equ -$8000+56 ;.w alx+$1A ($1CE4) debrisshape: original shape header (debris;
 ; the same equate as level_asteroid.asm, whose explode debris 06:F1DA reads it)
 X_TY equ -$8000+60 ;.b alx+$2B ($1CF5) trail colour (trail; .move 04:A247)
-M4_PV_ROUTE equ 0 ;$1FFF on route 1 [H, corneria-enemies.md]
 
 ; initialise_l 02:E265: friends_hp = 40 for every friend (game start).
 M4PathGameInit:
@@ -708,7 +707,7 @@ M4PvOp_hitground: ;90A7: h + y >= 0
 M4PvOp_iflevel: ;9202: l - 1 == route index
         move.b 1(a4),d0
         subq.b #1,d0
-        cmpi.b #M4_PV_ROUTE,d0
+        cmp.b M4_GS_CURLEVEL,d0
         seq d2
         andi.w #1,d2
         moveq #2,d1

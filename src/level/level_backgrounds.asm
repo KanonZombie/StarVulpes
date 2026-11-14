@@ -26,7 +26,7 @@
 ;   LBG_DEPTH .l table  zdepth table 70:0050 (M4_SC_DEPTH)
 ;   LBG_PSTRAT .l istrat  newplayerstrat $1788 (0 = Istrat not ported: the
 ;                       player keeps its strategy, PEND)
-; Not modelled (recorded in the JSON): music, BGMODE/initmode, HDMA enables
+; Not modelled (recorded in the JSON): music, BGMODE/HDMA registers
 ; and the hofmode HDMA patterns other than rotate, BG3 layers (water), the
 ; flashbg counter, offset-per-tile columns.
 ;
@@ -44,6 +44,35 @@ LBG_PSTRAT equ 6
 M4_LBG_VRAM equ $9a40 ;tiles up to M4_LEVEL_MSG_TILES ($b100, 182 tiles)
 M4_LBG_W64 equ M4_SPB+1 ;.b 1: the image streams 64 source columns (M4_SPB_ON = 2)
 M4_LBG_MAP equ M4_SPB_END ;.l decoded name table in WRAM
+M4_SPACE_SCROLLZ equ M4_PM+38 ;.w $16A2 spacescz
+
+; transfer_l 02:D997..D9DC, after calcbgscroll and before update_objects.
+; TEXT_MAP_CONTEXT+6 holds lastzchange from the previous map tick.
+M4LevelSpaceScroll:
+        tst.b M4_MV_16A4
+        beq.s M4LbgSpaceDone
+        move.w M4_SPACE_SCROLLZ,d0
+        add.w TEXT_MAP_CONTEXT+6,d0
+        cmpi.b #1,M4_MV_16A4
+        beq.s M4LbgSpaceUp
+        cmpi.w #500,d0
+        blo.s M4LbgSpaceStore
+        cmpi.w #-294,M4_SC_BG2Y
+        beq.s M4LbgSpaceDone
+        subq.w #1,M4_SC_BG2Y
+        bra.s M4LbgSpaceReset
+M4LbgSpaceUp:
+        cmpi.w #2000,d0
+        blo.s M4LbgSpaceStore
+        cmpi.w #212,M4_SC_BG2Y
+        beq.s M4LbgSpaceDone
+        addq.w #1,M4_SC_BG2Y
+M4LbgSpaceReset:
+        moveq #0,d0
+M4LbgSpaceStore:
+        move.w d0,M4_SPACE_SCROLLZ
+M4LbgSpaceDone:
+        rts
 
 ; d0.w = background number -> a0 = program, d1.w = dotsflag << 8 | star mode.
 ; Z = 1 when the number is not in the table. Other registers preserved.

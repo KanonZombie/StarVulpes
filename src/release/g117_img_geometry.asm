@@ -85,13 +85,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L087/2                 ; bra n=1,$0087
         dc.w $0830,$0080             ; ld a,#$0080
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $86e5                   ; add a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L0a8/2                 ; bra always,$00a8
 @L087:
         dc.w $0830,$007f             ; ld a,#$007f
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $86e5                   ; add a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L0a8/2                 ; bra always,$00a8
@@ -109,13 +109,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L0a3/2                 ; bra n=1,$00a3
         dc.w $0830,$0080             ; ld a,#$0080
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $26e5                   ; sub a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L0a8/2                 ; bra always,$00a8
 @L0a3:
         dc.w $0830,$0081             ; ld a,#$0081
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $26e5                   ; sub a,($0e5)
         dc.w $0e43                   ; ld ($043),a
 @L0a8:
@@ -135,13 +135,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L0c1/2                 ; bra n=1,$00c1
         dc.w $0830,$0070             ; ld a,#$0070
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $86e6                   ; add a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L0e2/2                 ; bra always,$00e2
 @L0c1:
         dc.w $0830,$006f             ; ld a,#$006f
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $86e6                   ; add a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L0e2/2                 ; bra always,$00e2
@@ -159,13 +159,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L0dd/2                 ; bra n=1,$00dd
         dc.w $0830,$0070             ; ld a,#$0070
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $26e6                   ; sub a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L0e2/2                 ; bra always,$00e2
 @L0dd:
         dc.w $0830,$0071             ; ld a,#$0071
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $26e6                   ; sub a,($0e6)
         dc.w $0e44                   ; ld ($044),a
 @L0e2:
@@ -197,13 +197,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L109/2                 ; bra n=1,$0109
         dc.w $0830,$0080             ; ld a,#$0080
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $86e5                   ; add a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L12b/2                 ; bra always,$012b
 @L109:
         dc.w $0830,$007f             ; ld a,#$007f
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $86e5                   ; add a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L12b/2                 ; bra always,$012b
@@ -222,13 +222,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L126/2                 ; bra n=1,$0126
         dc.w $0830,$0080             ; ld a,#$0080
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $26e5                   ; sub a,($0e5)
         dc.w $0e43                   ; ld ($043),a
         dc.w $4c00,@L12b/2                 ; bra always,$012b
 @L126:
         dc.w $0830,$0081             ; ld a,#$0081
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $26e5                   ; sub a,($0e5)
         dc.w $0e43                   ; ld ($043),a
 @L12b:
@@ -249,13 +249,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L145/2                 ; bra n=1,$0145
         dc.w $0830,$0070             ; ld a,#$0070
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $86e6                   ; add a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L167/2                 ; bra always,$0167
 @L145:
         dc.w $0830,$006f             ; ld a,#$006f
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $86e6                   ; add a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L167/2                 ; bra always,$0167
@@ -274,13 +274,13 @@
         dc.w $2007                   ; sub a,p
         dc.w $4d70,@L162/2                 ; bra n=1,$0162
         dc.w $0830,$0070             ; ld a,#$0070
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $26e6                   ; sub a,($0e6)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L167/2                 ; bra always,$0167
 @L162:
         dc.w $0830,$0071             ; ld a,#$0071
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $26e6                   ; sub a,($0e6)
         dc.w $0e44                   ; ld ($044),a
 @L167:
@@ -294,7 +294,7 @@
         dc.w $0e32                   ; ld ($032),a
         dc.w $4800,SVP_GeoProjectCache/2        ; call always,$257d
         dc.w $9880                   ; addi a,#$80
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $0e43                   ; ld ($043),a
         dc.w $e003                   ; eor a,a
         dc.w $0641                   ; ld a,($041)
@@ -304,7 +304,7 @@
         dc.w $0e32                   ; ld ($032),a
         dc.w $4800,SVP_GeoProjectCache/2        ; call always,$257d
         dc.w $9870                   ; addi a,#$70
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $0e44                   ; ld ($044),a
         dc.w $4c00,@L186/2                 ; bra always,$0186
 @L181:

@@ -671,6 +671,8 @@ M4StratShield:
         move.b #$ff,38(a0)
         move.b #10,39(a0)
         bsr M4BsPartInit
+        clr.b 16(a0) ;07:DCEA has no init_anim
+        clr.b 18(a0)
         moveq #0,d0
         rts
 M4ShieldTick:
@@ -886,6 +888,8 @@ M4Zaco6Mover:
         tst.b M4_BOSS_DYING
         beq M4Zaco6Move
         jsr M4EnKill
+        moveq #0,d0 ;08:B04F -> 06:8D07 returns without movement
+        rts
 M4Zaco6Move:
         jsr M4EnGen3d
         jsr M4EnMove

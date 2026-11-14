@@ -254,8 +254,8 @@ MX, POSE, LA = 0x48, 0x58, 0x70
 # RAM A arrays: matrix, pose, light << 8
 STACK_TOP = 0xbf                         # BSP stack, RAM A 0x80..0xbf, grows down through r2
 BCACHE = 0x80                            # RAM B r6 index of the colour cache: 32 entries (key, colour)
-BVIS = 0x00                              # RAM B r4 index of the visibility flags (B 0x100..0x13f)
-BREC = 0x40                              # RAM B r4/r5 index of the face record words (B 0x140..)
+BVIS = 0x00                              # RAM B r4 index of the visibility flags (B 0x100..0x14b)
+BREC = 0x4c                              # RAM B r4/r5 index of the face record words (B 0x14c..)
 S = type('S', (), _names)
 assert S.FSYNC < MX
 
@@ -464,7 +464,7 @@ def build():
     a.lda(S.GEOW); a.addi(10); a.read_dram_a()
     rd(S.VC); rd(S.NEAR)
     a.lda(S.VC); a.tst(); a.br('SVP_BspFailVis', 'n')
-    a.cmpi(65); a.br('SVP_BspFailVis', 'nn')
+    a.cmpi(77); a.br('SVP_BspFailVis', 'nn')
     a.lda(S.NEAR); a.tst(); a.br('SVP_BspNext', 'z')            # behind the near plane: nothing (M4MeshStart)
     a.lda(S.OBJN); a.addi(1); a.st(S.OBJN); a.shl(8); a.st(S.OBJT)
     # visibility flags -> RAM B 0x100..

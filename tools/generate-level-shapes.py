@@ -70,7 +70,7 @@ MIXED_ANIMATED_COLBOX = True
 def colbox_at(addr):
     b = rom[0x10000 + ((addr + 0x4e6d) & 0x7fff):][:18]
     sv = lambda o: int.from_bytes(b[o:o + 2], 'little', signed=True)
-    assert not b[9] & 0xc0, 'rotx/rotxyz colbox not used by the catalog'
+    assert not b[9] & 0x80, 'rotxyz colbox not supported'
     return [sv(3), sv(5), sv(7), b[9], sv(10), sv(12), sv(14), b[16]], int.from_bytes(b[0:2], 'little')
 
 
@@ -95,7 +95,7 @@ for e in entries:
                     assert m in (0, n), (e['name'], 'nested animation with another frame count')
                     box, nxt = colbox_at(nxt + 18 * k if m else nxt)
                     lst.append(box)
-                assert len(lst) <= 8, (e['name'], k)
+                assert len(lst) <= 10, (e['name'], k)
                 e['frames'].append(lst)
             break
         if b[2]:
@@ -103,15 +103,15 @@ for e in entries:
             base = 0x10000 + ((cb + 0x4e6d) & 0x7fff)
             for k in range(b[2]):
                 r = rom[base + 18 * k:base + 18 * k + 18]
-                assert int.from_bytes(r[0:2], 'little') == 0 and not r[9] & 0xc0, (e['name'], k)
+                assert int.from_bytes(r[0:2], 'little') == 0 and not r[9] & 0x80, (e['name'], k)
                 rv = lambda o: int.from_bytes(r[o:o + 2], 'little', signed=True)
                 e['boxes'].append([rv(3), rv(5), rv(7), r[9], rv(10), rv(12), rv(14), r[16]])
             e['animated'] = b[2]
             break
-        assert not b[9] & 0xc0, (e['name'], 'rotx/rotxyz colbox not used by the catalog')
+        assert not b[9] & 0x80, (e['name'], 'rotxyz colbox not supported')
         e['boxes'].append([sv(3), sv(5), sv(7), b[9], sv(10), sv(12), sv(14), b[16]])
         cb = int.from_bytes(b[0:2], 'little')
-        assert len(e['boxes']) <= 8
+        assert len(e['boxes']) <= 10
     if e['frames']:
         label = f'M4LevelShape{e["index"]}Boxes'
         lines += [f'{label}:', f'        dc.w ${0x4000 + len(e["frames"]):04x}']
@@ -185,10 +185,10 @@ for i, (name, header, svp) in enumerate(EFFECTS):
     while cb:  # same chain as the shapes above; single-box records only
         b = rom[0x10000 + ((cb + 0x4e6d) & 0x7fff):][:18]
         sv = lambda o: int.from_bytes(b[o:o + 2], 'little', signed=True)
-        assert not b[2] and not b[9] & 0xc0, (name, 'colbox layout not supported for effects')
+        assert not b[2] and not b[9] & 0x80, (name, 'colbox layout not supported for effects')
         boxes.append([sv(3), sv(5), sv(7), b[9], sv(10), sv(12), sv(14), b[16]])
         cb = int.from_bytes(b[0:2], 'little')
-        assert len(boxes) <= 8
+        assert len(boxes) <= 10
     if boxes:
         effect_boxes += [f'M4LevelEffect{i}Boxes:', f'        dc.w {len(boxes)}']
         effect_boxes += ['        dc.w ' + ','.join(str(v) for v in x) for x in boxes]

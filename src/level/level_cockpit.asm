@@ -97,6 +97,11 @@ M4SpCvDone:
 ; init_strats_l 06:81E7..835D, before the map and the strategies.
 M4SpInitStrats:
         movem.l d0-d1/a0,-(sp)
+        btst #4,M4_LP_FLYMODE ;06:82B0, float phases advance before objects
+        beq.s M4SpFloatDone
+        addq.b #4,M4_PM_156B
+        addq.b #8,M4_PM_156B+1
+M4SpFloatDone:
         clr.b M4_SPP_HUDON
         cmpi.b #SFM_INSIDE,M4_SPP_FM
         bne.s M4SpIsHud

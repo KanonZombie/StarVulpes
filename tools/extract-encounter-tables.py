@@ -451,10 +451,28 @@ def cockpit_hud():
     emit('m4-cockpit-crosshair', rows, 'bbw', '03:E0D9..E13E (dx, dy, VDP flip)')
 
 
+def mine2_shot_angles():
+    data = code(0x0a, 0xe70a, 0xe810)
+    # Each shot stores pitch ($154E) and yaw ($154D) before firing.
+    block = rb'\xac\x3a\x12\x8c\x4f\x15(.*?)\xa9.\x22\x46\xd1\x1f'
+    rows = []
+    for shot in re.findall(block, data, re.S):
+        row = []
+        for field in (0x4e, 0x4d):
+            address = bytes([field, 0x15])
+            if b'\x9c' + address in shot:
+                row.append(0)
+            else:
+                row.append(immediate_store(shot, b'\x8d' + address, signed=True))
+        rows.append(tuple(row))
+    assert len(rows) == 5
+    emit('m4-mine2-angles', rows, 'bb', '0A:E70A..E80F (pitch, yaw)')
+
+
 if __name__ == '__main__':
     for extract in (andross, spider, letters, letter_spawns, tunnels, escape_formation, missile_pods,
                     weapons, direct_tables, flight_modes, corneria_boss, meteor_encounters, fleet_and_rob,
-                    windmill, cockpit_hud, titania_splashes, player_laser_offsets, explosion_classes,
+                    windmill, cockpit_hud, mine2_shot_angles, titania_splashes, player_laser_offsets, explosion_classes,
                     route_parameters, title_parameters, radio_meter_box, arrow_masks, reference_fragments):
         extract()
     print('Extracted editable encounter, route, title and weapon parameters')

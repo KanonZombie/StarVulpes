@@ -153,8 +153,7 @@ M4Sz0Entry:
 M4Sz0NoByte:
         btst #0,d2
         beq.s M4Sz0NoFire
-        move.w M4_LV_GAMEFRAME,d0
-        add.w a0,d0
+        jsr M4ArPhase ;original 54-byte slot phase
         andi.w #3,d0
         bne.s M4Sz0NoFire
         movem.l d2/a2,-(sp)
@@ -377,8 +376,7 @@ M4Sz2Fire: ;400 <= |pz - z| < 1500, every 8 ticks: $0C straight ahead
         bmi.s M4Sz2Move
         subi.w #1500,d0
         bpl.s M4Sz2Move
-        move.w M4_LV_GAMEFRAME,d0
-        add.w a0,d0
+        jsr M4ArPhase ;original 54-byte slot phase
         andi.w #7,d0
         bne.s M4Sz2Move
         moveq #1,d0
@@ -530,8 +528,7 @@ M4CamShoot:
         tst.b 36(a0)
         beq.s M4CamLeaveInit
         subq.b #1,36(a0)
-        move.w M4_LV_GAMEFRAME,d0
-        add.w a0,d0
+        jsr M4ArPhase ;original 54-byte slot phase
         andi.w #15,d0
         bne.s M4CamFin
         moveq #1,d0

@@ -28,6 +28,7 @@ M4_GM_SIZE equ 32
 
 ; initialise_l 02:E265 (game start): credits, stage and route totals.
 M4GameInit:
+        jsr M4PlayerStartInit ;initialise_l 02:E277
         clr.l M4_TX_HOOK
         clr.b M4_END_ON ;level_ending.asm: no ending running
         lea M4_GM,a0

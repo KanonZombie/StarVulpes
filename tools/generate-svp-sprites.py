@@ -341,12 +341,21 @@ for coltab, header in COLTAB_SPRITES:
         frames.append(key)
     coltab_entries[coltab] = dict(e=entries[header], frames=frames)
     report.append(dict(coltab='03:%04X' % coltab, shape='00:%04X' % header, colour=meta, frames=frames))
+texture_tail = []
+inline_words = 0
+INLINE_TEXTURE_WORDS = 16384
 for key, t in textures.items():
-    label(f'SVP_SprTex{key}')
+    words = len(t['rows']) ** 2 // 4
+    target = lines if inline_words + words <= INLINE_TEXTURE_WORDS else texture_tail
+    if target is lines:
+        inline_words += words
+    target.append(f'SVP_SprTex{key}:')
     for row in t['rows']:
         packed = [(row[i] << 12) | (row[i + 1] << 8) | (row[i + 2] << 4) | row[i + 3] for i in range(0, len(row), 4)]
-        emit(*packed)
+        target.append('        dc.w ' + ','.join(f'${word:04x}' for word in packed))
+texture_tail.append('SVP_SprTexturesEnd:')
 (ROOT / 'build/svp-sprites.inc').write_text('\n'.join(lines) + '\n', encoding='ascii')
+(ROOT / 'build/svp-sprites-tail.inc').write_text('\n'.join(texture_tail) + '\n', encoding='ascii')
 
 # 68000 table: per SVP model id 0..23 a pointer (0 = not a sprite); entry:
 # dc.w sh_size, shift, n; n x (texture WORD address, texsize).

@@ -38,24 +38,9 @@ M4TrOk2:
         jsr M4PathGameInit ;initialise_l 02:E260: friends_hp 40
         jsr M4GameInit
         move.b #3,M4_LP_LIVES
-        ; initgame_l 02:E2C6: player from playercred, then the map up to its
-        ; first wait (as M4LevelStart).
+        ; The same player_Istrat entry used by normal stage starts.
         lea LV_PLAYER,a0
-        move.l #M4ScPlayerCred,32(a0)
-        ; USA 0B:B541..B545: player_Istrat clears invisible after playercred.
-        ; Training's planet strategy inherits this flag without changing it.
-        bclr #1,49(a0)
-        ori.b #$60,M4_LP_PSF
-        move.w #-60,M4_LP_VIEWCY
-        move.w #-240,M4_LP_MINX
-        move.w #240,M4_LP_MAXX
-        move.w #-190,M4_LP_MINY
-        move.w #60,M4_LP_MAXY
-        move.b #$02,M4_LP_FLYMODE
-        clr.b M4_LP_PMOVEAND
-        andi.b #$fb,M4_LP_PSF2
-        andi.b #$fe,M4_LP_PSF3
-        ori.b #2,M4_LP_PSF3
+        move.l #M4PlayerEntryInit,32(a0)
         lea M4_FADE,a0
         clr.w (a0)
         move.l #$80808000,4(a0)
@@ -72,6 +57,7 @@ M4TrOk3:
         move.l #$3aa7557f,M4_RNG ;initgame_l 02:E2C6 -> 02:E394 -> 03:B819 random_l seed (after newobjs)
         move.b #1,M4_LP_LIVES ;1F:FBD5 lives = 1
         clr.w M4_LV_GAMEFRAME ;gameframe = 0 (16 bits)
+        move.w #$ffff,M4_LVW_EPOCH
         clr.b M4_TR_FADING
         move.b #1,M4_TR_ACTIVE
         move.w #6,INTRO_DIAG+4

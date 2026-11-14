@@ -17,7 +17,7 @@ window (vertices + point frames, tools/generate-intro-geometry.py) and the windo
 geometry to the SVP ROM data block is a shared change (build/agent-armada-boss/INTEGRATION.md); then set
 DRAW = True (current, since the geometry moved to the SVP ROM block). The emitter's material 53 is the animated list 03:87AD (n = 8; frames 5..7 are the bytes of
 03:87B8, the emitter only selects colframe 0..4): it also needs REACHABLE_FRAMES[0x87ad] = 5 in
-tools/generate-intro-colours.py, detected below. The clasteroid sprite reuses the t1B texture (no SVP data).
+the shared colour decoder. The clasteroid sprite reuses the t1B texture (no SVP data).
 """
 import runpy
 from pathlib import Path
@@ -31,13 +31,12 @@ _POLY = [
     ('sship_0_c', 0xC034), ('bmyship_4', 0xD2E8), ('bmyship_l', 0xD390), ('bmyship_r', 0xD358),
     ('bmyship_lr', 0xD3C8), ('boss_8_5', 0xC5E4),
 ]
-_EMITTER_COLOURS = '0x87ad' in (_ROOT / 'tools/generate-intro-colours.py').read_text().lower()
 _earlier = set()
 for _f in sorted((_ROOT / 'tools/stages').glob('*.py')):
     if _f.name >= 'armada_boss.py':
         continue
     _earlier |= {h for _, h in runpy.run_path(str(_f)).get('SHAPES', [])}
-_drawn = [(n, h) for n, h in _POLY if DRAW and (h != 0xC5E4 or _EMITTER_COLOURS)]
+_drawn = [(n, h) for n, h in _POLY if DRAW]
 SHAPES = [(n, h) for n, h in _drawn if h not in _earlier]
 EFFECTS = [('AB_' + n.upper(), h, -1) for n, h in _POLY if (n, h) not in _drawn and h not in _earlier]
 EFFECTS.append(('AB_CLASTEROID', 0xAFE9, 22))

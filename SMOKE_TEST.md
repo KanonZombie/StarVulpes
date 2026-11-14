@@ -1,5 +1,21 @@
 # Validación
 
+## Auditoría SNES/MD del 13 y 14 de noviembre de 2026
+
+- Entrada y persistencia del jugador. 93 comparaciones de 19 entradas,
+  reinicios, CONTINUE y datos entre etapas. Arranque y vuelo de Corneria
+  y entrenamiento probados mediante el mando en BizHawk 2.9.1.
+- Modelos y geometría SVP. 96 cabeceras recuperadas. Validación de
+  470 modelos y 940 poses, con límites ampliados de vértices y visibilidad.
+- Estrategias. 929 comparaciones, incluidos los modos de salida y los
+  disparos de la mina de Venom. Los tres guiones de salida ensayados
+  devuelven el control al mapa.
+- Paletas y fondos. 106.396 comparaciones, 33 fondos, 24.354 colores
+  CPU/SVP y 205 matrices de estrellas contrastadas con la ROM original.
+
+Estas pruebas de correspondencia y emulación se ejecutaron durante el
+desarrollo. La validación en Nomad sigue pendiente.
+
 ## Extractor SPC precompilado
 
 La extracción usa `tools/audio/spc-trace.exe`, incluido en el checkout.
@@ -20,8 +36,10 @@ Validación del extractor 1.0.0:
   incluidos los loops y el final de los créditos. Audio: 35 bancos,
   52 secuencias musicales y 50 efectos recuperados sin cambios.
 - El rebuild normal funciona con las llamadas web de PowerShell bloqueadas
-  y deja únicamente `StarVulpes.bin` en `build/`, con los mismos 2.097.152
-  bytes, checksum `$2128` y SHA-256 indicado al final de este documento.
+  y deja únicamente `StarVulpes.bin` en `build/`. La validación inicial
+  del cambio de extractor produjo una ROM de 2.097.152 bytes con checksum
+  `$2128` y SHA-256
+  `01187ed048d245f579f49cd912f6da35cec6a91aec20b077a98844c092bcbf80`.
 - Una configuración antigua con `MEGASVP_SPC_CORE` apuntando a un directorio
   inexistente ya no bloquea las etapas normales.
 
@@ -57,7 +75,6 @@ Comprueba `video_error=0`, `sound_ready=1`, `corneria=true` y
 `sfx_played` positivo en `build/audio-native/playback/state.txt`.
 `scramble_music_frames` y `corneria_music_frames` deben ser positivos.
 
-La compilación comprobada produjo una ROM de 2.097.152 bytes con checksum
-`$2128` y SHA-256
-`01187ed048d245f579f49cd912f6da35cec6a91aec20b077a98844c092bcbf80`.
-BizHawk llegó a Corneria con vídeo y audio activos y reprodujo 204 efectos.
+La ROM de referencia para los cuatro lotes tiene 2.097.152 bytes, checksum
+`$946D` y SHA-256
+`726ae9fb0f1f1761dc56d7f6550cd54b23c082c0c6acdfde7fb15d0360ecd53c`.

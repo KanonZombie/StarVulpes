@@ -1412,8 +1412,7 @@ M4PmDvcFlat: ;06:D244
 ; 0, outvx/outvy 0, outdist = viewdist = 120, viewtype 0, noctrl|nofire,
 ; space limits, wobble off, no coll/exp, invisible, engine off, speeds 65,
 ; plrotz 0; 0B:B6EA: space body 0B:E884, viewmove, colldisable, outvz 0,
-; plrotz 0, $14CF += 16. (M4ScPlayerCred of level_scramble.asm runs the
-; planet body 0B:BBE3 for 0B:B6EA instead: see INTEGRATION.md.)
+; plrotz 0, $14CF += 16. Shared by the normal player entry and credit modes.
 M4PmCredI:
         move.b #1,M4_PM_14C4
         clr.w TEXT_MAP_CONTEXT+4 ;lastplayz $1701

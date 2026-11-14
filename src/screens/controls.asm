@@ -42,9 +42,7 @@ M4CtlOk2:
         jsr M4GameInit
         move.b #3,M4_LP_LIVES
         lea LV_PLAYER,a0
-        move.l #M4ScPlayerCred,32(a0)
-        bset #1,49(a0)
-        ori.b #$60,M4_LP_PSF
+        move.l #M4PlayerEntryInit,32(a0)
         lea M4_FADE,a0
         clr.w (a0)
         move.l #$80808000,4(a0)
@@ -62,6 +60,7 @@ M4CtlOk2:
 M4CtlOk3:
         move.l #$3aa7557f,M4_RNG ;initgame_l 02:E2C6 -> 02:E394 -> 03:B819 random_l seed (after newobjs)
         clr.w M4_LV_GAMEFRAME
+        move.w #$ffff,M4_LVW_EPOCH
         clr.b M4_CTL_PHASE
         tst.b M4_CTL_DEFTRAIN
         bne.s M4CtlMenuFirst

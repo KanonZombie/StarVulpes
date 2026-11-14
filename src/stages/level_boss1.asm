@@ -24,6 +24,7 @@ M4_B1_FXSMALL equ M4_FX_SMALL
 ; colldisable, parts placed (87C3), sbyte3 = 1. Not modelled: trigse $82,
 ; stratstate $1CDC = DP $00 (never read).
 M4StratBoss1:
+        move.l #M4B1DyingRoll,X_SM_STRAT2(a0) ;08:8166, only this boss
         move.l #M4B1Up,32(a0)
         move.l #M4LcHitFlash,X_COLL(a0)
         move.l #M4B1Explode,X_EXP(a0)
@@ -389,7 +390,13 @@ M4B1Dying:
         jmp M4LevelExplode
 M4B1DyingWait:
         jsr M4EnAddPZ
+        move.l X_SM_STRAT2(a0),d0 ;06:EA6F calls stratptr2 only when present
+        beq.s M4B1DyingDone
+        movea.l d0,a2
+        jmp (a2)
+M4B1DyingRoll:
         addq.b #2,14(a0)
+M4B1DyingDone:
         moveq #0,d0
         rts
 ; kind (0 small, 1 medium, 2 large), delay: 06:EADF..EB9A.

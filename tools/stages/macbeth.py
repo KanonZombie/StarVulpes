@@ -49,13 +49,9 @@ def _catalogued_elsewhere():
 
 
 _seen = _catalogued_elsewhere()
-# Drawing (build/agent-macbeth/INTEGRATION.md section 1). The SVP geometry now lives in ROM blocks
-# (coordinator, 16/10/2026), but with these 20 models the effect descriptor indices pass 255 and
-# src/stages/level_boss1.asm M4B1ExplShapes (dc.b of M4_FX_* indices) no longer assembles. Until that table is
-# made of WORDs, DRAW_MODELS stays False: the shapes are effect descriptors (svp -1: ROM header box,
-# sortz, size and shift for collision, z-remove and explosions; never drawn). The strategies do not
-# change when it is switched on (lookup by header). The rockbeam sprite (textures 27H/2BH/5CH) is drawn.
-DRAW_MODELS = False
+# M4B1ExplShapes stores WORD descriptor indices. Polygon geometry is admitted
+# independently of the number of effects in the catalogue.
+DRAW_MODELS = True
 DRAW_ROCKBEAM = True
 if DRAW_MODELS:
     SHAPES = [(n, h) for n, h in _SHAPES if h not in _seen]

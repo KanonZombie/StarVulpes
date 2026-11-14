@@ -248,8 +248,8 @@ M4EnBankToPlayer:
         move.w d0,d1
         asr.w #6,d1
         add.b d1,14(a0)
-        move.w M4_LV_GAMEFRAME,d1
-        add.w a0,d1 ;lo8(al1pt): port object address
+        jsr M4B1Al1pt
+        add.w M4_LV_GAMEFRAME,d1
         andi.w #3,d1
         bne M4EnBankDone
         tst.w d0
@@ -655,9 +655,9 @@ M4FxSparkInit: ;(no ssprite flag: 06:8D60 only faces the camera)
         rts
 
 ; ---------------------------------------------------------------------
-; explode_Istrat 06:F45F (a0 = destroyed object). divorcefamily and debris
-; (debrisshape) are not used by these strategies; sounds are not ported.
+; explode_Istrat 06:F45F (a0 = destroyed object).
 M4LevelExplode:
+        jsr M4LevelDivorce
         btst #SF_SPECIAL,49(a0)
         beq M4ExNoGate
         move.l #M4_SH_GATE_2,d0 ;descriptor index may exceed 127
@@ -1151,10 +1151,11 @@ M4Zacos4Strat:
         bsr M4EnBankToPlayer
         bra M4ZacosCont
 M4ZacosFire:
+        moveq #10,d5
+M4Zaco3Fire:
         moveq #1,d0
         moveq #0,d3
         moveq #0,d4
-        moveq #10,d5
         moveq #0,d6
         moveq #0,d7
         suba.l a3,a3
@@ -1242,7 +1243,8 @@ M4Zaco3Target:
         tst.b 36(a0)
         beq M4Zaco3CircleInit
         subq.b #1,36(a0)
-        bsr M4ZacosFire
+        moveq #0,d5 ;0A:816D uses weapon offset (0,0,0)
+        bsr M4Zaco3Fire
 M4Zaco3Mover:
         moveq #40,d0
         moveq #2,d1
@@ -1766,6 +1768,8 @@ M4EnWingsInit:
 ; Repair wing 08:E0C7: from (x+500, y, z-200) toward the player; sticks to
 ; it within ZD 500, repairs both wings when it reaches it.
 M4RepairWingInit: ;player_pos $150F/$1511/$1513 (08:E0E0..E10A)
+        jsr M4LvZeroPtrs
+        bset #F2_SHADOW,48(a0)
         move.w M4_SC_PPOSX,d0
         addi.w #500,d0
         move.w d0,(a0)
@@ -1780,18 +1784,14 @@ M4RepairWingInit: ;player_pos $150F/$1511/$1513 (08:E0E0..E10A)
         bset #SF_COLLDISABLE,49(a0)
         move.b #30,36(a0)
         move.l #M4RepairWingTick,32(a0)
+        M4PlaySfx $8b
+        moveq #0,d0 ;08:E13E, no movement on the creation tick
+        rts
 M4RepairWingTick:
         bsr M4EnAddPZ
         move.w 10(a0),d0
         add.w d0,4(a0)
-        moveq #3,d2
-        tst.b 36(a0)
-        beq M4RepairSlow
-        subq.b #1,36(a0)
-        bra M4RepairChase
-M4RepairSlow:
-        moveq #1,d2
-M4RepairChase: ;08:E158/E169 player_pos
+        moveq #3,d2 ;08:E158/E169, always before the timer
         move.w (a0),d0
         move.w M4_SC_PPOSX,d1
         jsr M4LpAchase
@@ -1800,8 +1800,18 @@ M4RepairChase: ;08:E158/E169 player_pos
         move.w M4_SC_PPOSY,d1
         jsr M4LpAchase
         move.w d0,2(a0)
-        tst.b 36(a0)
-        bne M4RepairReach
+        subq.b #1,36(a0)
+        bne M4EnKeep
+        move.b #1,36(a0)
+        moveq #1,d2 ;then a second, slower chase
+        move.w (a0),d0
+        move.w M4_SC_PPOSX,d1
+        jsr M4LpAchase
+        move.w d0,(a0)
+        move.w 2(a0),d0
+        move.w M4_SC_PPOSY,d1
+        jsr M4LpAchase
+        move.w d0,2(a0)
         move.b 14(a0),d0
         move.b 14(a1),d1
         moveq #1,d2
@@ -1810,11 +1820,12 @@ M4RepairChase: ;08:E158/E169 player_pos
         movea.l a1,a2
         bsr M4EnZD
         subi.w #500,d0
-        bpl M4RepairReach
-        move.w M4_SC_PPOSX,(a0) ;08:E186/E197
+        bpl M4RepairReturn
+        move.w M4_SC_PPOSX,(a0) ;08:E1C8
         move.w M4_SC_PPOSY,2(a0)
         move.b 14(a1),14(a0)
-        move.w #-40,10(a0)
+M4RepairReturn:
+        move.w #-40,10(a0) ;08:E1DF, both distance branches
         bset #3,45(a0)
 M4RepairReach:
         movea.l a1,a2

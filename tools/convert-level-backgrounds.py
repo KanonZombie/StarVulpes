@@ -309,7 +309,7 @@ def derive(n, events):
     def word(addr):
         lo, hi = stores.get(addr), stores.get(addr + 1)
         return None if lo is None or hi is None else lo | hi << 8
-    gamepal = None
+    gamepal = 1 if res['initmode'] else None
     for e in events:
         if e['op'] == 'jsl' and e['target'] == '02:F484':
             gamepal = stores.get(0x1899)
@@ -323,7 +323,7 @@ def derive(n, events):
         splayerflymode_14DD=stores.get(0x14DD), splayerflymodeopt_14DE=stores.get(0x14DE),
         changeviewmode_06BA91=any(e['op'] == 'jsl' and e['target'] == '06:BA91' for e in events),
         gamepal_1899=gamepal,
-        zdepthtable_700050=f'03:{word(0x700050):04X}' if word(0x700050) is not None else None,
+        zdepthtable_700050=f'03:{word(0x700050):04X}' if word(0x700050) is not None else ('03:8FAA' if res['initmode'] else None),
         hofmode_1FE4=stores.get(0x1FE4),
         bg2Yscroll_169E=word(0x169E), bg2scroll_194F=word(0x194F),
         m_meters_70021C=stores.get(0x70021C),
@@ -621,7 +621,7 @@ def compare(snes, md):
 
 
 # ---------------------------------------------------------------- outputs
-CONVERTER_VERSION = 'v2 lines 0-1 (14+11), reduce to 182 tiles, programs without BG3/PPU args'
+CONVERTER_VERSION = 'v3 initmode state and gamepal, depth palette consumers'
 OP = dict(END=0, LOAD=1, VAR=2, VIEW=3, GAMEPAL=4, DEPTH=5, PSTRAT=6)
 
 
@@ -665,7 +665,12 @@ def program(n, events, image_label, depth_labels):
     loaded = False
     for e in events:
         k = e['op']
-        if k in ('bg2chr', 'bg2scr', 'palette'):
+        if k == 'initmode':
+            ops.extend([('GAMEPAL', 1, f"{e['at']} irqsetmode{e['mode']} 02:8062/80E4"),
+                        ('DEPTH', 'M4DepthNormal', 'initmode normal zdepth'),
+                        ('VAR', (0x16A4, 0), 'initmode dospacesc=0'),
+                        ('VAR', (0x1EF3, 0), 'initmode fadepal=0')])
+        elif k in ('bg2chr', 'bg2scr', 'palette'):
             if not loaded:
                 ops.append(('LOAD', image_label, f"{e['at']} bg2chr/bg2scr/palette"))
                 loaded = True

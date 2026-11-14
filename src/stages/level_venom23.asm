@@ -2373,7 +2373,70 @@ M4V3FtDone:
 
 ; ---------------------------------------------------------------------
 ; Strategy table (original 24-bit address, Istrat).
+; mine2 0A:E67F / E6C9, selected USA ROM. vy -45..15 then five aimed
+; relovalbeam shots. Destruction by a hit uses the no-fire branch.
+M4V3Mine2:
+        move.l #M4V3Mine2Tick,32(a0)
+        move.l #M4LcHitFlash,X_COLL(a0)
+        move.l #M4V3Mine2NoFire,X_EXP(a0)
+        move.b #2,38(a0)
+        move.b #8,39(a0)
+        move.w #-45,8(a0)
+        jsr M4IntroRandom
+        move.b d0,13(a0)
+        bset #F2_RELEXPLODE,48(a0)
+        ori.b #$40,44(a0) ;enemyweap, selected USA mine2
+M4V3Mine2Tick:
+        jsr M4EnMove
+        jsr M4EnAddPZ
+        cmpi.w #15,8(a0)
+        beq.s M4V3Mine2Fire
+        tst.w 8(a0)
+        bmi.s M4V3Mine2Fall
+        addq.b #2,12(a0)
+        bra.s M4V3Mine2Next
+M4V3Mine2Fall:
+        addi.b #12,13(a0)
+M4V3Mine2Next:
+        addq.w #1,8(a0)
+        moveq #0,d0
+        rts
+M4V3Mine2Fire:
+        lea M4V3Mine2Angles,a4
+        moveq #4,d2
+M4V3Mine2Shot:
+        moveq #M4_WT_RELOVALBEAM,d0
+        moveq #0,d3
+        moveq #0,d4
+        moveq #0,d5
+        move.b (a4)+,d6
+        move.b (a4)+,d7
+        lea LV_PLAYER,a3
+        movem.l d2/a4,-(sp)
+        jsr M4EnFire
+        jsr M4IntroRandom
+        andi.b #31,d0
+        cmpa.w #0,a2
+        beq.s M4V3Mine2ShotDone
+        add.b d0,15(a2)
+M4V3Mine2ShotDone:
+        movem.l (sp)+,d2/a4
+        dbra d2,M4V3Mine2Shot
+M4V3Mine2NoFire:
+        moveq #-1,d0
+        jsr M4EnCreate
+        beq.s M4V3Mine2Explode
+        move.l (a0),(a2)
+        move.w 4(a0),4(a2)
+        move.l #M4StratParticles,32(a2)
+M4V3Mine2Explode:
+        jmp M4LevelExplode
+M4V3Mine2Angles:
+        include '../build/m4-mine2-angles.inc'
+        even
+
 M4StrategiesVenom23:
+        dc.l $0ae67f,M4V3Mine2
         dc.l $0ae08a,M4V3StratAircar1
         dc.l $0ae131,M4V3StratAircar2
         dc.l $0ae233,M4V3StratAircar3

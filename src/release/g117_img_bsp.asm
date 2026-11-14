@@ -54,7 +54,7 @@
         dc.w $0623                   ; ld a,($023)
         dc.w $a800,$ffff             ; and a,#$ffff
         dc.w $4d70,SVP_BspFailVis/2        ; bra n=1,$aae3
-        dc.w $7841                   ; cmpi a,#$41
+        dc.w $784d                   ; cmpi a,#$4d
         dc.w $4c70,SVP_BspFailVis/2        ; bra n=0,$aae3
         dc.w $e003                   ; eor a,a
         dc.w $0622                   ; ld a,($022)
@@ -561,7 +561,7 @@
         dc.w $4c50,@L1c8/2                 ; bra z=0,$01c8
         dc.w $0065                   ; ld pc,stack
 @L291:
-        dc.w $1d40                   ; ld r5,#$40
+        dc.w $1d4c                   ; ld r5,#$4c
         dc.w $05c5                   ; ld (r5+!),pm4
         dc.w $05c5                   ; ld (r5+!),pm4
         dc.w $05c5                   ; ld (r5+!),pm4
@@ -612,7 +612,7 @@
         dc.w $4d50,@L2d6/2                 ; bra z=1,$02d6
         dc.w $0629                   ; ld a,($029)
         dc.w $00c3                   ; ld pm4,a
-        dc.w $1d44                   ; ld r5,#$44
+        dc.w $1d50                   ; ld r5,#$50
         dc.w $0335                   ; ld a,(r5+!)
         dc.w $00c3                   ; ld pm4,a
         dc.w $0335                   ; ld a,(r5+!)
@@ -627,7 +627,7 @@
         dc.w $00c3                   ; ld pm4,a
         dc.w $00c3                   ; ld pm4,a
 @L2db:
-        dc.w $1d40                   ; ld r5,#$40
+        dc.w $1d4c                   ; ld r5,#$4c
         dc.w $e003                   ; eor a,a
         dc.w $0639                   ; ld a,($039)
         dc.w $7802                   ; cmpi a,#$02

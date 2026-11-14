@@ -387,6 +387,12 @@ M4LcBoxStore:
 ; d1,d2 bytes (low bytes used) rotated by angle d0 with 8-bit tables:
 ; p' = m(p,c) + m(q,s) ; q' = -m(p,s) + m(q,c); byte sums wrap, sign-extended.
 M4LcRotPair:
+        tst.b d0 ;COLDET skips the byte rotation when the angle is zero
+        bne.s M4LcRotPairNonzero
+        ext.w d1
+        ext.w d2
+        rts
+M4LcRotPairNonzero:
         movem.l d0/d3-d5/a1,-(sp)
         lea M4IntroShipSine,a1
         move.b (a1,d0.w),d4 ;s

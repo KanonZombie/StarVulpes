@@ -106,6 +106,12 @@ M4GeometryKindStore:
         move.w d0,(a1)+
         moveq #0,d0
         move.b 18(a0),d0
+        tst.w M4_GEO_VIEW
+        beq.s M4GeometryFrameKind
+        cmpi.b #3,21(a0) ;level elaser2 uses al_animframe, including frame 4
+        bne.s M4GeometryFrameKind
+        move.b 16(a0),d0
+M4GeometryFrameKind:
         cmpi.b #14,21(a0)
         blo.s M4GeometryAnimationReady
         move.b 16(a0),d0
@@ -207,7 +213,7 @@ M4IntroGeometryLoad:
         movea.l M4_GEO_CURRENT,a1
         move.w 22(a1),M4_MESH_NEAR
         move.w 20(a1),d1
-        cmpi.w #64,d1
+        cmpi.w #76,d1
         bhi.s M4GeometryLoadBad
         tst.w d1
         beq.s M4GeometryLoadDone

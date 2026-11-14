@@ -531,6 +531,21 @@ def main():
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     words = list(dict.fromkeys(list(CASE_WORDS) + [int(w, 16) for w in args.level_words.split(',') if w]))
+    # Polygon admissions carry their referenced texture words into the atlas.
+    # A stage's geometry and its materials are one dependency closure.
+    level = runpy.run_path(str(ROOT / 'tools/level-shapes.py'))
+    textures = runpy.run_path(str(ROOT / 'tools/extract-sprite-textures.py'))
+    source = textures['Rom'](rom_bytes)
+    for entry in level['catalog'](rom_bytes):
+        header = entry['header'] - 0x8000
+        table = int.from_bytes(rom_bytes[header + 18:header + 20], 'little')
+        materials = {face['material'] for group in entry['model']['groups'] for face in group['faces']}
+        for material in sorted(materials):
+            meta, frames = textures['colour_frames'](source, table, material)
+            limit = textures['REACHABLE_FRAMES'].get(int(meta['word'], 16), len(frames))
+            for word in frames[:limit]:
+                if word & 0xc000 == 0x4000 and word not in words:
+                    words.append(word)
     prod = gen_code(dict(recip='SVP_SprRecip', rowbase='SVP_TriRowBase', col='SVP_TriCol'), 'SVP_IntroInvalid')
     (out / 'svp-texpoly.inc').write_text(prod, encoding='ascii')
     test = gen_code(dict(recip='SVP_TexTestRecip', rowbase='SVP_TexTestRowBase', col='SVP_TexTestCol'),

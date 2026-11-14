@@ -146,14 +146,10 @@ M4LvAllocReturn:
 M4LevelRemove:
         movem.l d0-d1/d7/a1,-(sp)
         tst.w 22(a0)
-        beq.s M4LvRemoveDone
+        beq M4LvRemoveDone
+        jsr M4WpDropFlame ;1F:D501 removes the owner's flame first
         clr.w 22(a0)
-        btst #4,X2_FL4(a0) ;divorcefamily 1F:DBA4, child branch (mother branch PEND)
-        beq.s M4LvRemoveNotChild
-        movem.l d0-d1/a2-a3,-(sp)
-        movea.l a0,a2
-        jsr M4PvDivorce
-        movem.l (sp)+,d0-d1/a2-a3
+        bsr M4LevelDivorce
 M4LvRemoveNotChild:
         subq.w #1,M4_LV_COUNT
         move.w a0,d1
@@ -256,6 +252,8 @@ M4StratTower0:
         move.b #$ff,38(a0)
         move.b #4,39(a0)
         move.l #M4StratTower0Tick,32(a0)
+        moveq #0,d0 ;08:B18B returns before the first rotation
+        rts
 M4StratTower0Tick:
         addq.b #8,13(a0)
         moveq #0,d0
@@ -425,14 +423,31 @@ M4LvTickNext:
         lea LV_PLAYER,a1
         jsr M4LevelDoStrat
         clr.l M4_LV_CREATOR
-        move.w X_NEXT(a0),d1
         tst.w d0
         beq.s M4LvTickKeep
+        jsr M4WpDropFlame
+        move.w X_NEXT(a0),d1 ;flame may have been the next live object
         jsr M4LevelRemove
+        bra.s M4LvTickAdvance
 M4LvTickKeep:
+        move.w X_NEXT(a0),d1
+M4LvTickAdvance:
         move.w d1,d0
         bra.s M4LvTickNext
 M4LvTickDone:
         move.l (sp)+,M4_LV_LAST
         movem.l (sp)+,d0-d7/a0-a6
+        rts
+
+; divorcefamily 1F:DBA4, shared by explosion and removal. Keep the child
+; pointer after unlinking, and detach the mother's remaining numbered children.
+M4LevelDivorce:
+        movem.l d0-d6/a1-a3,-(sp)
+        btst #4,X2_FL4(a0)
+        beq.s M4LvDivorceMother
+        movea.l a0,a2
+        jsr M4PvDivorce
+M4LvDivorceMother:
+        jsr M4AbDivorceMother
+        movem.l (sp)+,d0-d6/a1-a3
         rts

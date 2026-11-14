@@ -197,6 +197,12 @@ def texture_from_word(rom, word):
                 table_entry='03:%04X' % (TEXTUREADDRTAB + 3 * idx))
 
 
+# Original consumers bound these truncated animation tables. 08:816E / 07:9913
+# select 0..4, and 07:DFBE / 07:EA1B select Andross colours 0..19.
+REACHABLE_FRAMES = {0x87b8: 5, 0x87ad: 5}
+REACHABLE_FRAMES.update({0x85bf + 41*i: 20 for i in range(8)})
+
+
 def colour_frames(rom, col_ptr, colour_index=0):
     """All frames of the colour word (animated tables) at col_ptr + 2*colour_index (bank 03)."""
     word = rom.w(3, col_ptr + 2 * colour_index)

@@ -57,6 +57,7 @@ origen. `build/m4-andross-panels.inc` contiene posiciones y tiempos,
 `build/m4-weapon-sounds.inc` contiene los sonidos por arma,
 `build/m4-arrow-masks.inc` y `build/m4-arrow-bits.inc` las máscaras del HUD,
 y `build/level-result-faces.inc` los selectores de retratos de resultados.
+`build/m4-mine2-angles.inc` contiene los ángulos de los cinco disparos de la mina.
 `build/level-hud.json` contiene las alturas, márgenes, colores y paleta de
 las barras de escudo, boost y jefe. `build.ps1` regenera sus tiles y vuelve
 a empaquetar los gráficos a partir de los archivos extraídos. Escudo y

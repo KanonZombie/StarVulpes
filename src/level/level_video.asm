@@ -1,6 +1,6 @@
 ; Corneria video: setbg 27 (bg_1_1c 03:910B) converted by
-; tools/extract-corneria-background.py; level polygon palette 03:8B0A
-; (gamepal blue, row7) on line2. Pipeline idle, IRQ4 masked during uploads.
+; tools/extract-corneria-background.py; gamepal 1 on line2 until bg_1_1c
+; selects blue. Pipeline idle, IRQ4 masked during uploads.
 M4_LEVEL_BG_TILES equ $9a40 ;110 tiles, ids $4D2..$53F
 M4_LEVEL_HUD_TILES equ $f420 ;HUD tile bank, sized by the extracted parameters
 M4_LEVEL_HUD equ $ffd848 ;1: level HUD sprites chained after the footer mask
@@ -19,7 +19,7 @@ M4LevelVideoInit:
 M4LvVideoCram:
         move.w (a0)+,(a1)+
         dbra d1,M4LvVideoCram
-        lea M4LevelScenePalette,a0
+        lea M4LevelGamepals+32,a0 ;gamepal 1 until bg_1_1c sets blue
         lea M4_BASE_CRAM+64,a1
         moveq #15,d1
 M4LvVideoScene:

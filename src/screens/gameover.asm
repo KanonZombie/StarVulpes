@@ -26,12 +26,11 @@ M4GameOverStart:
         move.b #2,M4_SCREEN
         clr.l M4_GEO_VP
         jsr M4LevelInit ;initgame_l (M4GoVideoInit for M4_SCREEN 2)
+        jsr M4PlayerStartInit ;06:BBEF gameoverinit_l
         move.b #8,M4_AR_GF2 ;initgame_strats 06:8004: gameflags2 = gf2_ingame
         move.l #$3aa7557f,M4_RNG ;02:E2C6 -> 03:B819 seed (the waiting map 0D:FA71 creates nothing)
         lea LV_PLAYER,a0
-        move.l #M4ScPlayerCred,32(a0) ;0B:B551 playercred
-        bset #1,49(a0)
-        ori.b #$60,M4_LP_PSF
+        move.l #M4PmCredI,32(a0) ;0B:B551 set_playercred_l
         andi.b #$fd,M4_LP_GAMEFLAGS
         clr.b M4_SC_MMETERS
         move.l a0,M4_LV_CREATOR ;06:BC09: created behind the player
@@ -50,7 +49,6 @@ M4GameOverStart:
         move.w #$7a71,(a0)
         clr.w 4(a0)
         move.l #M4ScriptProgramMap0D,28(a0)
-        clr.w M4_LV_GAMEFRAME
         clr.b M4_GO_PHASE
         move.b #31,M4_GO_SUB ;02:F0A5
         move.w #50,M4_GO_COUNT

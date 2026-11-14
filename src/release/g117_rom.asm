@@ -2,7 +2,7 @@
 ; SVP_GeoRom0. Every reference is symbolic, so the blocks follow each
 ; other; the address after g117at is where the Nomad-measured 117 had it.
 G117_AABB_RAM equ $ff4680       ; AABB test copied to RAM (115: was $ff5d80)
-G117_EPOCH equ $fff9ac          ; WORD game frame of the last draw list
+G117_EPOCH equ M4_LVW_EPOCH          ; WORD game frame of the last draw list
 G117_ACTIVE equ $fff9aa         ; BYTE 114 early-raster chain armed
 G117_READY equ M4_CHAIN_HDR+12  ; WORD $5254 ready, $ffff aborted
 G117_MAGIC equ M4_CHAIN_HDR+14  ; WORD $4552 early-raster request

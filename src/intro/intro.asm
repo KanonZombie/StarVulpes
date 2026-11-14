@@ -40,7 +40,7 @@ M4IntroStart:
         bsr M4IntroEffectsTest
         cmpi.w #1,$ff4544
         bne M4IntroFailed
-        bsr M4TextVideoInit
+        jsr M4TextVideoInit
         bsr M4IntroPolyTest
         cmpi.w #1,$ff44d4
         bne M4IntroFailed

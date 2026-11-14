@@ -1,22 +1,8 @@
-"""Stage unit `spacemisc`: Asteroid Belt 3 (map 0D:E5F6), Black Hole (0D:C8A9) and Out of This Dimension (0D:C8E5).
+"""Asteroid 3, Black Hole and Out of This Dimension graphics from the USA ROM.
 
-Owner: build/agent-spacemisc/ (SPACEMISC.md). Strategies: src/stages/level_spacemisc.asm, which finds every shape by its
-ROM header (M4LevelShapeIndex), so a drawn shape added later with the same header replaces the effect without
-touching the strategies. Headers read from ref/Star Fox (USA).sfc (rev0, SHA-256 3857b529...a84d); names
-UltraStarFox where it has one. Survey: build/agent-spacemisc/shape-survey.py (headers reached by the three maps,
-their mother scripts, paths, the random-enemy table 09:F923 and this unit's strategies).
-
-Drawn shapes (SHAPES, SVP models): every polygon model below fits the per-model limit (<= 85 vertices) and the SVP
-cmd9 register (<= 64 vertices / 64 visibility entries per object, |coord| < 16384 after the shift;
-build/agent-macbeth/shape-check.py: at most 58 vertices, 42 visibility entries, |coord| <= 400). The model geometry
-lives in the SVP ROM block (build/svp-geo-rom.inc), not in the program window. Effects (svp -1, never drawn, the
-descriptor carries the ROM header box, sortz, size and sh_shift for collision, z-remove and explosions): the sprites
-B059 / B18D (points 11:F0xx, textures not converted) and paper_1 DCA4, whose point stream the model decoder does
-not delimit (tools/recover-intro-model.py assertion; build/agent-spacemisc/SPACEMISC.md). DRAW_MODELS = False turns
-every model back into an effect.
-
-Headers already catalogued by tools/level-shapes.py or by a stage module that sorts before this one are skipped
-with a text scan (no runpy of other stage modules), as tools/stages/macbeth.py does.
+Polygon models and their frames use the shared SVP geometry backend.
+Billboards keep original colour animation and texture descriptors. Existing
+headers are shared with other stages through the common descriptor catalogue.
 """
 import re
 from pathlib import Path
@@ -54,15 +40,17 @@ def _catalogued_elsewhere():
     return found
 
 
-_NOT_MODELS = {0xB059, 0xB18D, 0xDCA4, 0xDC88, 0xCA44}  # sprites; DCA4 undecodable; DC88 colour lists with DD20 frames; CA44 frame-dependent colbox chain (INTEGRATION.md)
+_NOT_MODELS = {0xB059, 0xB18D}  # billboard sprites, with their own texture descriptors
 _seen = _catalogued_elsewhere()
-DRAW_MODELS = False  # True once level_boss1.asm M4B1ExplShapes is dc.w (INTEGRATION.md section 3)
+DRAW_MODELS = True  # descriptor indices are WORDs
 if DRAW_MODELS:
     SHAPES = [('sm_' + n, h) for n, h in _EFFECTS if h not in _seen and h not in _NOT_MODELS]
-    EFFECTS = [('SM_' + n.upper(), h, -1) for n, h in _EFFECTS if h not in _seen and h in _NOT_MODELS]
+    EFFECTS = [('SM_' + n.upper(), h, 22) for n, h in _EFFECTS if h not in _seen and h in _NOT_MODELS]
 else:
     SHAPES = []
     EFFECTS = [('SM_' + n.upper(), h, -1) for n, h in _EFFECTS if h not in _seen]
 # Textured materials of the drawn models (tools/generate-svp-texpoly.py CASE_WORDS): meteo_0 BBB8 material 48
 # ($401B) and slot_0 BD08 material 106 ($400C), colour table 03:8213.
 TEX_WORDS = [0x401B, 0x400C] if DRAW_MODELS else []
+
+SPRITE_HEADERS = {h for _, h, model in EFFECTS if model == 22}

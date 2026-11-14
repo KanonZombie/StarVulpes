@@ -15,7 +15,7 @@ M4_MESH_GROUPS equ $ff89f0
 M4_MESH_NODES equ $ff89f4
 M4_MESH_STRIDE equ $ff89f6
 M4_MESH_MATERIALS equ $ff89f8
-M4_MESH_VIS equ $ff8ac0
+M4_MESH_VIS equ $ff8a80 ;76 flags, ending before CLIP_A
 M4_MESH_CLIP_A equ $ff8b00
 M4_MESH_CLIP_B equ $ff8c00
 M4_POLY_INPUT equ $301e00
@@ -135,6 +135,11 @@ M4MeshModelReady:
         bhs.s M4MeshEffectVertices
         moveq #0,d0
         move.b 18(a0),d0
+        tst.w M4_GEO_VIEW
+        beq.s M4MeshLaserFrame
+        move.b 16(a0),d0
+        andi.w #63,d0
+M4MeshLaserFrame:
         lsl.w #2,d0
         lea M4IntroLaserFrames,a4
         movea.l (a4,d0.w),a4
@@ -449,6 +454,39 @@ M4ColtabFind:
 M4ColtabFound:
         movea.l (a1),a3
 M4ColourNoCtab:
+        cmpi.w #M4_LEVEL_KIND,d5
+        blo.s M4ColourNightDone
+        btst #2,49(a0) ;01:ADE3 special objects use id_1_c
+        beq.s M4ColourNight
+        lea M4ColoursCtab82ED,a3
+M4ColourNight:
+        moveq #0,d0
+        move.b M4_MV_DEPTH+1,d0
+        lsl.w #8,d0
+        move.b M4_MV_DEPTH,d0
+        cmpi.w #$8b8a,d0
+        beq.s M4ColourNightDone
+        moveq #4,d1
+        cmpi.w #$8c0a,d0
+        beq.s M4ColourNightFind
+        moveq #8,d1
+        cmpi.w #$8d0a,d0
+        beq.s M4ColourNightFind
+        cmpi.w #$8d8a,d0
+        bne.s M4ColourNightDone
+        moveq #12,d1
+M4ColourNightFind:
+        lea M4NightTableMap,a1
+M4ColourNightNext:
+        move.l (a1),d0
+        beq.s M4ColourNightDone
+        cmpa.l d0,a3
+        beq.s M4ColourNightFound
+        lea 16(a1),a1
+        bra.s M4ColourNightNext
+M4ColourNightFound:
+        movea.l (a1,d1.w),a3
+M4ColourNightDone:
         btst #2,31(a0) ;hit-flash, consumed by the draw list (ships, level)
         beq.s M4ColourNoFlash
         cmpi.w #M4_LEVEL_KIND,d5
@@ -457,6 +495,9 @@ M4ColourNoCtab:
         bhs.s M4ColourNoFlash
 M4ColourFlash:
         lea M4ColoursWhite,a3
+        btst #2,49(a0) ;special hitflash uses red_c, 01:ADEE
+        beq.s M4ColourNoFlash
+        lea M4ColoursCtab80FC,a3
 M4ColourNoFlash:
         move.w M4_MESH_STRIDE,d0
         subq.w #6,d0

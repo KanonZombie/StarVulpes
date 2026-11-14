@@ -53,22 +53,9 @@ M4LvStartInit: ;(sp).b bank, 2(sp).w saved call stack flag [+18 bytes], index
         clr.l M4_TX_HOOK
         move.b M4_GS_LIVES,M4_LP_LIVES ;lives $16EE (initplanets_l 03:BD9E: 3)
         if ~def(M4_LEVEL_BOSS_TEST)
-        ; initgame_l 02:E2C6: player from playercred (0,0,0), invisible, then
-        ; the level script from 0D:D068 up to its first wait (newobjs_l).
+        ; player_Istrat 0B:B53A runs playercred, then restores visibility.
         lea LV_PLAYER,a0
-        move.l #M4ScPlayerCred,32(a0)
-        bset #1,49(a0)
-        ori.b #$60,M4_LP_PSF ;playercred_Istrat 0B:B566: no control
-        move.w #-60,M4_LP_VIEWCY ;and its limits (0B:B5F6..B65F): the
-        move.w #-240,M4_LP_MINX ;player keeps y = 0 (probe), the
-        move.w #240,M4_LP_MAXX ;viewopening camera starts from it
-        move.w #-190,M4_LP_MINY
-        move.w #60,M4_LP_MAXY
-        move.b #$02,M4_LP_FLYMODE ;$12, then &= $EF (0B:B6A1)
-        clr.b M4_LP_PMOVEAND
-        andi.b #$fb,M4_LP_PSF2
-        andi.b #$fe,M4_LP_PSF3
-        ori.b #2,M4_LP_PSF3
+        move.l #M4PlayerEntryInit,32(a0)
         lea M4_FADE,a0 ;after the title fade: fade 0, INIDISP $80
         clr.w (a0)
         move.l #$80808000,4(a0)
@@ -413,13 +400,16 @@ M4LevelInit:
         clr.b M4_OVL_LOOP
         endif
         move.l #'M4LV',M4_LV_DIAG
-        lea M4_LV,a0
-        moveq #11,d0
+        lea M4_LV+4,a0 ;gameframe persists across initgame_l and route screens
+        moveq #10,d0
 M4LvInitClear:
         clr.l (a0)+
         dbra d0,M4LvInitClear
         move.w #1,M4_LV_STATUS
         move.w M4_CLOCK,M4_LV_LASTCLOCK
+        move.w M4_LV_GAMEFRAME,d0
+        subq.w #1,d0
+        move.w d0,M4_LVW_EPOCH ;new object pool invalidates the previous view cache
         clr.b M4_TR_PRTTRAIN ;initgame_l: $1FE0 = 0
         clr.b M4_SPB_ON ;plane B is not the streamed space map
         clr.b M4_LV_MAPEND
@@ -541,6 +531,10 @@ M4LvBgMin:
         move.w LV_PLAYER,d1
         asr.w #3,d1
         add.w d1,d0
+        cmpi.b #4,M4_MV_1FE4 ;tunnel2 02:DCA7 -> 06:FBE6
+        bne.s M4LvBgHofs
+        addi.w #128,d0
+M4LvBgHofs:
         neg.w d0
         andi.w #$3ff,d0
         move.w d0,M4_BG_HSCROLL
@@ -619,6 +613,7 @@ M4LvFlashDone:
         bra M4LvNoRadio
 M4LvWorldRuns:
         jsr M4LevelBgScroll ;calcbgscroll_l runs before the strategies
+        jsr M4LevelSpaceScroll ;02:D997 uses the previous map Z delta
         jsr M4SpInitStrats ;init_strats_l 06:81E7..835D: HUD flag, crosshairon, Select
         ; player_pos $150F/$1511/$1513: init_strats_l 06:81D5 copies the
         ; player's position after the strategy pass; strategies of this tick
@@ -640,6 +635,7 @@ M4LvWorldRuns:
         jsr M4LevelView
         jsr M4BossHudTick
         jsr M4ScSetBlack ;setblack_l before transfer_l
+        jsr M4MtFadePal ;02:DA18, after getview and before transswap
         jsr M4ScTransSwap ;transswap 02:DAA3: BG requests at the tick end
         tst.b M4_END_ON ;end_game_seq / credits (level_ending.asm): loop body after transfer_l
         beq.s M4LvNotEnding
@@ -1571,7 +1567,7 @@ M4LvFireOne:
         move.b 15(a2),54(a0) ;$24 mother speed
         move.b 15(a2),X_SBYTE3(a0) ;$24 as read by Pelaser 06:A18A (level_weapons.asm)
         move.b #2,45(a0) ;al_type atmissile (no atzremove)
-        ori.b #CF_LASER|CF_FRIEND,44(a0)
+        ori.b #CF_LASER|CF_FRIEND|$02,44(a0) ;gen_weapon 06:B55A, acf_weapon
         move.l #M4LcPLaserColl,X_COLL(a0)
         move.l #M4LcPLaserDeath,X_EXP(a0)
         move.b #M4WpCfg07HP,38(a0)
@@ -1765,6 +1761,7 @@ M4LevelRestartTick:
         move.l M4_LV_SPECIALS,-(sp) ;restart_l keeps $173E/$14DB (D3)
         move.w TEXT_MAP_CONTEXT+12,-(sp) ;$1774: background of the stage
         jsr M4LevelInit
+        jsr M4PlayerStartInit ;09:996F, reset after death
         move.w (sp)+,d0
         jsr M4MusicLevel
         move.l (sp)+,M4_LV_SPECIALS

@@ -190,23 +190,27 @@ M4LpDiv2Pos:
         asr.w #1,d0
         rts
 
-; playermove_init 0B:D1FD + playerstart_init 0B:D2EF + playeronplanet_Istrat
-; 0B:BB03 (the original restart point enters with set_playerOnPlanet_l).
+; playermove_init 0B:D1FD with planet defaults for the restart entry.
+; Carry inventory flags forward, applying playermove_init's mode masks.
 M4LevelPlayerInit:
+        move.w M4_LP_SPECWEP,-(sp)
+        move.w M4_LP_PSF,-(sp)
+        move.b M4_LP_PSF3,-(sp)
         lea M4_LP,a1
         moveq #M4_LP_SIZE/4-1,d0
 M4LpClear:
         clr.l (a1)+
         dbra d0,M4LpClear
+        move.b (sp)+,M4_LP_PSF3
+        move.w (sp)+,M4_LP_PSF
+        move.w (sp)+,M4_LP_SPECWEP
         move.w #120,M4_LP_VIEWDIST
         move.w #120,M4_LP_OUTDIST
         move.w #LP_MEDPSPEED,M4_LP_PVIEWVZ
         move.b #LP_MEDPSPEED,M4_LP_TOSPEED
         move.b #LP_MEDPSPEED,M4_LP_MEDSPEED
         move.b #1,M4_LP_SPECDELAY
-        move.w #3,M4_LP_SPECWEP ;defaultNukeCount
-        clr.b M4_TN_PNUMHITS ;0B:D294 pnumhits, 0B:D30F curr_ship 0 (select_ship_l(0))
-        clr.b M4_TN_CURRSHIP
+        clr.b M4_TN_PNUMHITS ;playermove_init 0B:D294
         move.b #40,M4_LP_BOOSTMETER
         move.b #3,M4_LP_FIRECNT
         move.b #1,M4_LP_FIREDELAY
@@ -224,7 +228,8 @@ M4LpClear:
         move.b #$1b,M4_LP_FLYMODE
         move.b #$a8,M4_LP_PMOVEAND
         ori.b #$20,M4_LP_GAMEFLAGS ;viewrot
-        andi.b #$1f,M4_LP_PSF
+        andi.b #$f2,M4_LP_PSF3 ;0B:D2DE..D2E6: clear tunnel/forced brake/no collisions
+        ori.b #2,M4_LP_PSF3 ;playermove_init enables the engine
         move.w #3,M4_LP_FRAMERATE
         move.b #40,M4_LP_BODYHP
         move.b #5,M4_LP_LWHP
@@ -233,6 +238,25 @@ M4LpClear:
         move.b #1,M4_LP_LWCC
         move.b #1,M4_LP_RWCC
         jmp M4SpInit ;$14DD 0, $14DE 2, outvz 0 (level_cockpit.asm)
+
+; playerstart_init_l 0B:D2EF. Called by initialise_l, continue YES,
+; restart_l and gameoverinit_l, independently of per-stage playermove_init.
+M4PlayerStartInit:
+        move.w #3,M4_LP_SPECWEP
+        clr.w M4_LP_PSF
+        clr.b M4_LP_PSF3
+        clr.b M4_TN_SHIELDUP
+        clr.b M4_TN_CURRSHIP
+        rts
+
+; player_Istrat 0B:B53A..B54D, after playermove_init created the player.
+M4PlayerEntryInit:
+        jsr M4PmCredI
+        bclr #SF_INVISIBLE,49(a0)
+        bclr #SF_COLLDISABLE,49(a0)
+        clr.b M4_PM_14C4 ;slowstars
+        moveq #0,d0
+        rts
 
 ; a0 = player object. One original tick of playeronplanet_strat.
 M4LevelPlayerTick:
@@ -389,8 +413,22 @@ M4LpWireDone:
         tst.b 36(a0)
         beq.s M4LpNoHit
         subq.b #1,36(a0)
+        lea M4_LP_VIEWSHAKE,a2
+        moveq #2,d3
+M4LpHitShake:
+        jsr M4IntroRandom ;0B:D3A6, three independent random_l calls
+        andi.b #15,d0
+        subq.b #7,d0
+        move.b d0,(a2)+
+        dbra d3,M4LpHitShake
+        btst #0,M4_LV_GAMEFRAME+1
+        bne.s M4LpHitDone
+        bset #SF_HITFLASH,49(a0)
+        bset #2,31(a0) ;white material consumed by the graphical frontend
+        bset #5,49(a0) ;nohitaffect
         bra.s M4LpHitDone
 M4LpNoHit:
+        bclr #5,49(a0)
         clr.w M4_LP_VIEWSHAKE
         clr.b M4_LP_VIEWSHAKE+2
 M4LpHitDone:
@@ -883,6 +921,7 @@ M4LpFire:
         andi.b #$18,d0 ;broken wings
         beq.s M4LpFireWings
         andi.b #~PSF2_DOUBLASER,M4_LP_PSF2
+        andi.b #$ef,M4_LP_PSF3 ;0B:DF7F: a broken wing also removes beamball
 M4LpFireWings:
         btst #6,M4_LP_PSF
         bne.w M4LpFireReturn

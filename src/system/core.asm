@@ -65,6 +65,10 @@ M4Sfx04 equ $1f100
         endif
         include '../build/svp-guard-clip.inc'
 SVP_GuardEnd:
+        if def(M4_VR_DMA)
+; Packed sprite words also use the free tail of the same SSP program page.
+        include '../build/svp-sprites-tail.inc'
+        endif
         dcb.b $20000-*,0
 
 CPU_Start:

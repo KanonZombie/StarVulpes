@@ -19,15 +19,21 @@ M4_MV_1743 equ M4_MV+14 ;.w $1743
 M4_MV_1FE4 equ M4_MV+16 ;.w $1FE4
 M4_MV_1F37 equ M4_MV+18 ;.w $1F37
 M4_MV_1F39 equ M4_MV+20 ;.w $1F39
+M4_MV_DEPTH equ M4_MV+26 ;.w 70:004E m_depthstab, little-endian
 M4_MV_END equ M4_MV+32
 
 M4MapVarsInit:
         movem.l d0/a0,-(sp)
+        move.b M4_MV_1784,-(sp) ;infog is written by map commands across stages
         lea M4_MV,a0
         moveq #7,d0
 M4MvClear:
         clr.l (a0)+
         dbra d0,M4MvClear
+        clr.w M4_SPACE_SCROLLZ
+        move.b #$8a,M4_MV_DEPTH
+        move.b #$8b,M4_MV_DEPTH+1
+        move.b (sp)+,M4_MV_1784
         movem.l (sp)+,d0/a0
         rts
 
@@ -96,7 +102,9 @@ M4LvVarTable:
         dc.l $0014dd,M4_SPP_FM
         dc.l $0014de,M4_SPP_FMOPT
         dc.l $00021c,M4_SC_MMETERS ;70:021C m_meters (setvar low address)
-        dc.l $701a26,M4_MV+30 ;70:1A26 star colour mode (fixed 0 in the port)
+        dc.l $701a26,M4_MV+30 ;70:1A26 stars/snow/pollen
+        dc.l $70004e,M4_MV_DEPTH
+        dc.l $70004f,M4_MV_DEPTH+1
         dc.l $001964,M4_SC_STAYBLACK
         dc.l $0015b7,M4_SC_SCRAMBLE
         dc.l $001f07,M4_SC_KEEPPSTRAT
@@ -174,9 +182,11 @@ M4MvBlockExt:
         beq M4MvBg14b
         jmp M4LvUnsupported
 ; bg_1_4b_1 03:9877 (Titania): zdepth 70:0050 = $8FAA, gamepal 2,
-; shadowheight $1961 = 0 (the planet registers 70:004E/4F: no consumer).
+; m_depthstab 70:004E = $8C0A, shadowheight $1961 = 0.
 M4MvBg14b:
         move.l #M4DepthNormal,M4_SC_DEPTH
+        move.b #$0a,M4_MV_DEPTH
+        move.b #$8c,M4_MV_DEPTH+1
         moveq #2,d0
         jsr M4LvGamepal
         bra M4MvNext

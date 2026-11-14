@@ -128,7 +128,9 @@ def pack(rom, symbols):
              ('M4EffectRandomCases','M4EffectExplosionVertices'),('M4LateBossCases','M4BossModel0BSP'),
              ('M4ParticleCases','M4SoundInit')]
     # The program-window tail after the SSP tables (and the release text raster).
-    tail = max(symbols.get('SVP_STextEnd', symbols['SVP_SphFastEnd']), symbols['SVP_GuardEnd'])
+    tail = max(symbols.get('SVP_STextEnd', symbols['SVP_SphFastEnd']), symbols['SVP_GuardEnd'],
+               symbols.get('SVP_SprTexturesEnd', 0))
+    assert tail <= 0x20000 and not any(rom[tail:0x20000]), 'SSP program-window tail is no longer empty'
     # Page-alignment tails after the SVP geometry page 0 and the sphere ROM
     # tables (formerly the literals 0x17cb0e / 0x19bfb8: they follow layout).
     page_tails = [(symbols['SVP_GeoRom0End'],symbols['SVP_GeoRom1']),

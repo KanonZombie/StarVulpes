@@ -227,7 +227,8 @@ M4CnMain:
         cmpi.b #1,M4_CN_EXIT
         bne.s M4CnView
         move.b #3,M4_LP_LIVES ;03:E748 lives = 3; playerstart_init_l 0B:D2EF
-        move.b #3,M4_GS_LIVES ;runs with every level start (M4LevelPlayerInit)
+        move.b #3,M4_GS_LIVES
+        jsr M4PlayerStartInit ;03:E74D, YES accepted
 M4CnView:
         jsr M4LevelView ;fixed view: W = R(0,0,0)
         move.w M4_LV_GAMEFRAME,M4_SCENE_TICK

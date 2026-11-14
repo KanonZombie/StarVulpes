@@ -6,6 +6,7 @@
 ; The 68000 composes the view (as the original 65816 asks the GSU for two
 ; small matrices) and computes rel.W per object for the painter order and
 ; the cone rejection (GSU 01:B17F/01:AF12); the SVP composes Aт.W per object.
+M4_LVW_EPOCH equ $fff9ac ;view-cache tick, invalidated with the object pool
 M4_LVW equ $fff300
 M4_LVW_POS equ M4_LVW+0 ;3 WORDs viewpos
 M4_LVW_W equ M4_LVW+6 ;9 WORDs W row-major
@@ -272,6 +273,11 @@ M4LvwNoFloat:
         add.w d0,2(a0)
         move.w 4(a2),d0
         add.w d0,4(a0)
+        btst #0,M4_SC_VIEWTYPE ;02:FABB also applies outside Fpos
+        beq.s M4LvwArmRot
+        bsr M4LvwAim
+        bra M4LvwAimRot
+M4LvwArmRot:
         ; W = R(+outvx, +outvy-turnrot, outvz-plrotz)
         move.w M4_LP_OUTVX,d0
         move.w M4_LP_OUTVY,d1
@@ -334,18 +340,33 @@ M4LvwGridOn:
 ; viewtype bit1 (Fpos, 02:FAA5): viewpos = $C1/$C3/$C5, no arm. Bit0 (toobj,
 ; 02:FAC6) toward the player: outvx = -Xangle (1F:D03E: atan(dy, distXZ)),
 ; outvy = Yangle (1F:D021: atan(dx, dz)), arctan GSU 01:81AA; the view
-; rotation is (outvx, outvy, outvz = 0), without turnrot and plrotz.
+; toobj rotation is (outvx, outvy, outvz), without turnrot and plrotz.
 M4LvwFixed:
         lea M4_LVW_POS,a0
         move.l M4_SC_VIEWPOS,(a0)
         move.w M4_SC_VIEWPOS+4,4(a0)
         btst #0,M4_SC_VIEWTYPE
         beq.s M4LvwFixedRot
+        bsr M4LvwAim
+        bra.s M4LvwAimRot
+M4LvwFixedRot:
+        moveq #0,d2
+        bra.s M4LvwViewRotation
+M4LvwAimRot:
+        move.w M4_LP_OUTVZ,d2
+M4LvwViewRotation:
+        move.w M4_LP_OUTVX,d0
+        move.w M4_LP_OUTVY,d1
+        jsr M4LvwRotation
+        bra M4LvwComposed
+
+M4LvwAim:
+        lea M4_LVW_POS,a0
         lea LV_PLAYER,a2
         move.w M4_SC_VIEWTOOBJ,d0 ;getview 02:F926 toobj: Y = $15A0 (0: the player)
-        beq.s M4LvwFixedPl
+        beq.s M4LvwAimPl
         movea.w d0,a2
-M4LvwFixedPl:
+M4LvwAimPl:
         jsr M4EnDistXZ
         move.w d0,d1
         move.w 2(a2),d0
@@ -359,12 +380,7 @@ M4LvwFixedPl:
         sub.w 4(a0),d1
         jsr M4IntroWeaponAtan
         move.w d0,M4_LP_OUTVY
-M4LvwFixedRot:
-        move.w M4_LP_OUTVX,d0
-        move.w M4_LP_OUTVY,d1
-        moveq #0,d2
-        jsr M4LvwRotation
-        bra M4LvwComposed
+        rts
 
 ; showview: rel = obj - viewpos (WORD wrap), (x,y,z) = rel.W into 56/58/60,
 ; cone rejection 01:AF12, sortz = sh_sortz + z (+15000 atgnd), painter order.
@@ -505,39 +521,8 @@ M4LvwContractX:
 M4LvwContractY:
         cmpi.w #12287,d0
         bhi M4LvwDrawSkip
-        ; SVP9 projects every vertex with z >= 32 in 16 bits: with r = size,
-        ; zmin = max(32, z - r), require |x| + r and |y| + r < 64 zmin
-        ; (beyond, the object is off screen at any of its sizes)
-        moveq #0,d2
-        move.w 26(a3),d2 ;r
-        move.w 60(a0),d1
-        add.w d2,d1
-        cmpi.w #32,d1
-        blt.s M4LvwContractDone ;every vertex behind the near plane
-        move.w 60(a0),d1
-        sub.w d2,d1
-        cmpi.w #32,d1
-        bge.s M4LvwContractZ
-        moveq #32,d1
-M4LvwContractZ:
-        ext.l d1
-        asl.l #6,d1
-        move.w 56(a0),d0
-        bpl.s M4LvwContractPx
-        neg.w d0
-M4LvwContractPx:
-        ext.l d0
-        add.l d2,d0
-        cmp.l d1,d0
-        bge M4LvwDrawSkip
-        move.w 58(a0),d0
-        bpl.s M4LvwContractPy
-        neg.w d0
-M4LvwContractPy:
-        ext.l d0
-        add.l d2,d0
-        cmp.l d1,d0
-        bge M4LvwDrawSkip
+        ; SVP9 marks unsafe projections for SVP10 camera-space clipping.
+        ; A radius-based projection bound would discard visible large models.
 M4LvwContractDone:
         move.w 18(a3),d3 ;sh_sortz
         add.w 60(a0),d3

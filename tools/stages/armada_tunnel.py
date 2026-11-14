@@ -79,10 +79,10 @@ def _catalogued_elsewhere():
 
 
 # Not convertible (shape-check.py): AE29 smoke (point stream), DCC0 bou_0 (textured material 107 $400D),
-# B8F7 (rotx colbox; reservation only), C0DC/C130/C1D8 (16-bit point lists, op 08). up_door D198 (10-frame
+# C0DC/C130/C1D8 are completed by route1-catalog. up_door D198 (10-frame
 # animated colbox) and iris BDE8 (4 chained 8-frame lists) are SHAPES since generate-level-shapes.py emits
 # those lists (MIXED_ANIMATED_COLBOX layout).
-_EFFECT_ONLY = {0xAE29, 0xDCC0, 0xB8F7, 0xC0DC, 0xC130, 0xC1D8}
+_EFFECT_ONLY = {0xAE29, 0xDCC0, 0xC0DC, 0xC130, 0xC1D8}
 _seen = _catalogued_elsewhere()
 SHAPES = [(n.lower(), h) for n, h in _EFFECTS if h not in _seen and h not in _EFFECT_ONLY]
 EFFECTS = [(n, h, 4 if h == 0xAE29 else -1) for n, h in _EFFECTS if h not in _seen and h in _EFFECT_ONLY]

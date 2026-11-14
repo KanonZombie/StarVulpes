@@ -269,13 +269,13 @@ M4ScTransSwap:
         clr.b M4_SC_MMETERS
         clr.b M4_SC_DOTS
         move.l #M4DepthTunnel,M4_SC_DEPTH
-        bra.s M4ScSwapInfo
+        bra M4ScSwapInfo
 M4ScSwapNot11i:
         cmpi.w #$ff,d0 ;bg cont (briefing_l contmap): pstrat playeroncont
         bne.s M4ScSwapNotCont
         move.l #M4CtlPlayerIstrat,M4_SC_NEWPSTRAT
         clr.b M4_SC_MMETERS
-        bra.s M4ScSwapInfo
+        bra M4ScSwapInfo
 M4ScSwapNotCont:
         cmpi.w #$111,d0 ;training 03:9235 = bg_1_1c + playeronplanet, $14DD 0, $14DE 2
         bne.s M4ScSwapNotTraining
@@ -288,9 +288,13 @@ M4ScSwapNotTraining:
         cmpi.w #27,d0
         beq.s M4ScSwap11c
         jsr M4LevelBgSwap ;other stage backgrounds (level_backgrounds.asm)
-        beq.s M4ScSwapBad ;Z: number not in the table
+        beq M4ScSwapBad ;Z: number not in the table
         bra M4ScSwapInfo
 M4ScSwap11c:
+        move.b #$8a,M4_MV_DEPTH
+        move.b #$8b,M4_MV_DEPTH+1
+        moveq #3,d0 ;03:912C gamepal blue
+        jsr M4LvGamepal
         clr.b M4_SPP_FM ;bg_1_1c / training: $14DD 0, $14DE 2
         move.b #2,M4_SPP_FMOPT
         clr.b M4_SC_BGBLACK ;palette rows of bg_1_1c loaded again
@@ -332,6 +336,8 @@ M4ScSwapBad:
 ; 03:8FAA and gamepal 1 (03:8ACA, CGRAM row 7 = MD line 2) [stage-asteroid1.md
 ; annex], pstrat 0B:835B playerinsidespaceflyin (level_cockpit.asm).
 M4ScSwapSpace:
+        move.b #$8a,M4_MV_DEPTH
+        move.b #$8b,M4_MV_DEPTH+1
         jsr M4SpaceBgLoad
         movem.l d1/a0-a1,-(sp)
         lea M4IntroTextPalette,a0
@@ -372,15 +378,6 @@ M4ScClearDone:
 ; ---------------------------------------------------------------------
 ; Player strategies. a0 = player.
 
-; playercred strategy 0B:B6EA before the first BG swap (initgame pass and
-; the first tick): playermove 0B:E884 (= the planet body without control:
-; gen_3dvecs, framescalevecs, add_vecs2pos) and viewmove 0B:D083; the
-; invisible player advances (oracle: 63 Z per pass).
-M4ScPlayerCred:
-        jsr M4LevelPlayerTick
-        moveq #0,d0
-        rts
-
 ; playeropening_Istrat 0B:8004 (Ltunnel mode).
 M4ScPlayerOpeningInit:
         ori.b #$60,M4_LP_PSF ;no control, no fire
@@ -406,6 +403,7 @@ M4ScPlayerOpeningInit:
         clr.l X_COLL(a0) ;1F:D450
         clr.l X_EXP(a0)
         clr.w M4_LV_GAMEFRAME ;stz gameframe
+        move.w #$ffff,M4_LVW_EPOCH ;the new tick origin invalidates cached coordinates
         move.w #1,M4_SC_TIME_ON
         move.w M4_CLOCK,M4_SC_TIME_BASE
         move.b #2,M4_FADE ;fadedir 2

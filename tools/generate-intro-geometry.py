@@ -107,7 +107,7 @@ emit(0x6800,0);branch('SVP_GeoInvalid','n1');emit(0x6800,41)
 branch('SVP_GeoCountValid','n1');branch('SVP_GeoInvalid')
 # Vanishing point offset (MAILBOX words 13/14, signed; 0 = the GSU 112/96
 # centre of the levels): the controls (64,48) and continue (76,92) screens.
-label('SVP_GeoCountValid');emit(0x08e0,13,0x08e0,0x0018,0x000c,0xe003,0x003c);store(0x1f0);emit(0x08e0,14,0x08e0,0x0018,0x000c,0xe003,0x003c);store(0x1f1)
+label('SVP_GeoCountValid');emit(0x08e0,13,0x08e0,0x0018,0x000c,0xe003,0x003c);store(0xd1);emit(0x08e0,14,0x08e0,0x0018,0x000c,0xe003,0x003c);store(0xd2)
 load(2);emit(0x6800,0);branch('SVP_GeoDone','z1')
 imm(0xc00);store(1);imm('((M4_GEO_OUTPUT-$300000)/2)');store(4)
 label('SVP_GeoObject')
@@ -195,8 +195,7 @@ imm(0);store(0xb)
 #  - c outside [-16384,16383] -> invalid before this vertex's RAM B or DRAM
 #    writes ((c+16384) mod 2^16 has bit 15 set exactly then);
 #  - RAM B[index*3+axis] = c (r5 streams; written before projecting, so a
-#    model of more than 80 vertices still overwrites B F0/F1, the vanishing
-#    point, as before);
+#    vanishing-point offsets live in RAM A D1/D2, outside the vertex array);
 #  - records x,y,z,sx,sy continue the PM4 write stream left after the 16-word
 #    header (base+16+5*index), the slow projection path does not touch PM4.
 # Scratch: RAM A C8..D0 transposed matrix, C6 counter, E4 M(z), E5/E6 q+1;
@@ -233,14 +232,14 @@ for near in (0,1):
    branch(f'SVP_GeoProjDec{tag}{neg}','n1')
    for dec in (0,1):
     if dec:label(f'SVP_GeoProjDec{tag}{neg}')
-    emit(0x0830,(centre-dec if not neg else centre+dec)&0xffff,0x8600+0x1f0+axis,(0x2600 if neg else 0x8600)+0xe5+axis);store(0x43+axis)
+    emit(0x0830,(centre-dec if not neg else centre+dec)&0xffff,0x8600+0xd1+axis,(0x2600 if neg else 0x8600)+0xe5+axis);store(0x43+axis)
     if not (neg and dec):branch(f'SVP_GeoProjAxis{tag}')
   label(f'SVP_GeoProjAxis{tag}')
  branch('SVP_GeoProjectionReady')
 label('SVP_GeoProjSlow')
 for axis,centre in [(0,128),(1,112)]:
  load(0x40+axis);store(0x38);load(0x42);store(0x32)
- call('SVP_GeoProjectCache');emit(0x8800,centre,0x8600+0x1f0+axis);store(0x43+axis)
+ call('SVP_GeoProjectCache');emit(0x8800,centre,0x8600+0xd1+axis);store(0x43+axis)
 branch('SVP_GeoProjectionReady')
 label('SVP_GeoBehind');imm(0);store(0x43);store(0x44)
 label('SVP_GeoProjectionReady')

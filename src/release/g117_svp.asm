@@ -1237,7 +1237,7 @@ G117S01b64:
         dc.w $0e38                   ; ld ($038),a
         dc.w $4800,SVP_GeoProject/2        ; call always,$257d
         dc.w $8800,$0080             ; add a,#$0080
-        dc.w $87f0                   ; add a,($1f0)
+        dc.w $86d1                   ; add a,($0d1)
         dc.w $0e70                   ; ld ($070),a
         dc.w $e003                   ; eor a,a
         dc.w $064e                   ; ld a,($04e)
@@ -1255,7 +1255,7 @@ G117S01b64:
         dc.w $0e38                   ; ld ($038),a
         dc.w $4800,SVP_GeoProject/2        ; call always,$257d
         dc.w $8800,$0070             ; add a,#$0070
-        dc.w $87f1                   ; add a,($1f1)
+        dc.w $86d2                   ; add a,($0d2)
         dc.w $0e70                   ; ld ($070),a
         dc.w $e003                   ; eor a,a
         dc.w $064e                   ; ld a,($04e)
@@ -1571,13 +1571,13 @@ G117S01e9e:
         dc.w $000c                   ; ld -,pm4
         dc.w $e003                   ; eor a,a
         dc.w $003c                   ; ld a,pm4
-        dc.w $0ff0                   ; ld ($1f0),a
+        dc.w $0ed1                   ; ld ($0d1),a
         dc.w $08e0,$000e             ; ld pmc,#$000e
         dc.w $08e0,$0018             ; ld pmc,#$0018
         dc.w $000c                   ; ld -,pm4
         dc.w $e003                   ; eor a,a
         dc.w $003c                   ; ld a,pm4
-        dc.w $0ff1                   ; ld ($1f1),a
+        dc.w $0ed2                   ; ld ($0d2),a
         dc.w $e003                   ; eor a,a
         dc.w $0830,$c820             ; ld a,#$c820
         dc.w $0e01                   ; ld ($001),a

@@ -70,9 +70,14 @@ M4LevelPlayerModeTables:
         dc.l M4PlayerModesVenom ;level_venom.asm
         dc.l 0
 M4LevelPlayerModes:
+        dc.l $0b9347,M4ClearBridgeI
+        dc.l $0b9725,M4ClearEarthI
+        dc.l $0b9d61,M4ClearTurnI
         dc.l $0ba228,M4WpIstrat ;Warp: stratptr = A23D
         dc.l $0b9558,M4CdIstrat ;ClearDemo
         dc.l 0
+
+        include 'stages/level_clear_modes.asm'
 
 ; Warp 0B:A23D (Istrat) / A296 (every tick). a0 = player.
 M4WpIstrat:

@@ -17,7 +17,7 @@ def signed(v):
     return v - 256 if v & 128 else v
 
 
-def point_frames(rom, start, end, shift):
+def point_frames(rom, start, end, shift, reachable_frames=None):
     """Selected shape opcodes; Frames masks6 bits and selects modulo count.
 
     SHMACS relative WORDs point from their second byte, as msh_jump reads.
@@ -56,7 +56,9 @@ def point_frames(rom, start, end, shift):
             else:raise AssertionError(('Point opcode',hex(p),op))
         raise AssertionError('Point stream exceeded bound')
     first,count=decode(0)
-    frames=[decode(frame)[0] for frame in range(count)]
+    limit = count if reachable_frames is None else min(count, reachable_frames)
+    frames=[decode(frame)[0] for frame in range(limit)]
+    frames += [frames[-1]] * (count - limit)
     assert frames[0]==first and len({len(v) for v in frames})==1
     return frames
 
@@ -79,7 +81,15 @@ def recover(rom, header_offset=0x65f0):
     # EndPoints terminates the stream, not the location of the face list.
     # Several original headers share faces or place their points after them.
     points_bound = faces_start if faces_start > points_start else ((points_start//0x8000)+1)*0x8000
-    frames=point_frames(rom,points_start,points_bound,shift)
+    # paper_1 declares 32 slots but has 20 entries. Selected-ROM paths
+    # 390A/39A4/3A40 bound addanim to 20 (DPATHDAT.ASM paper_1/paperfly).
+    # Preserve the declared mask and fill its unreachable slots as the colour
+    # decoder does for the corresponding truncated animation tables.
+    reachable = 20 if header_offset == 0x5ca4 else None
+    if reachable is None:
+        frames=point_frames(rom,points_start,points_bound,shift)
+    else:
+        frames=point_frames(rom,points_start,points_bound,shift,reachable)
     if header_offset in units:
         name, vertex_count, visibility_count, expected_header = units[header_offset]
         assert header.hex() == expected_header
